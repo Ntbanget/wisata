@@ -10,14 +10,24 @@
 USE wisata_db;
 
 SET FOREIGN_KEY_CHECKS = 0;
--- Clear bookings first (FK RESTRICT would otherwise block hotel/tourist_place wipes).
--- These are test bookings; clearing them is intentional for the data rebuild.
-TRUNCATE TABLE reviews;
-TRUNCATE TABLE booking_details;
-TRUNCATE TABLE bookings;
-TRUNCATE TABLE tourist_places;
-TRUNCATE TABLE hotels;
-TRUNCATE TABLE cities;
+-- Clear bookings + dependents first (FK RESTRICT would otherwise block
+-- hotel/tourist_place wipes). These are test bookings; clearing is intentional.
+-- Use DELETE (not TRUNCATE) because some MySQL/MariaDB versions still enforce
+-- FK checks on TRUNCATE even when FOREIGN_KEY_CHECKS=0 is set.
+DELETE FROM reviews;
+DELETE FROM booking_details;
+DELETE FROM bookings;
+DELETE FROM tourist_places;
+DELETE FROM hotels;
+DELETE FROM cities;
+
+-- Reset AUTO_INCREMENT so re-imports don't drift IDs.
+ALTER TABLE reviews          AUTO_INCREMENT = 1;
+ALTER TABLE booking_details  AUTO_INCREMENT = 1;
+ALTER TABLE bookings         AUTO_INCREMENT = 1;
+ALTER TABLE tourist_places   AUTO_INCREMENT = 1;
+ALTER TABLE hotels           AUTO_INCREMENT = 1;
+ALTER TABLE cities           AUTO_INCREMENT = 1;
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ============================================================
