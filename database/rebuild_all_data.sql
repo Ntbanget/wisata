@@ -115,7 +115,7 @@ INSERT INTO hotels (name, city_id, price_per_night, rating, category, lat, lng, 
 -- ===== Yogyakarta (city_id=12, center: -7.7956, 110.3695) =====
 INSERT INTO hotels (name, city_id, price_per_night, rating, category, lat, lng, image_url, description) VALUES
 ('Hotel Tentrem Yogyakarta',      12, 1200000,4.8, 'high',   -7.7641, 110.3795, 'https://example.com/tentrem.jpg',     'Five-star Javanese luxury hotel'),
-('The Phoenix Hotel Yogyakarta',  12, 950000, 4.6, 'high',   -7.7843, 110.3651, 'https://example.com/phoenix.jpg',     'Heritage colonial hotel near Tugu'),
+('The Phoenix Hotel Yogyakarta',  12, 950000, 4.6, 'high',   -7.7825, 110.3672, 'https://example.com/phoenix.jpg',     'Heritage colonial hotel near Tugu'),
 ('Royal Ambarrukmo Yogyakarta',   12, 1050000,4.7, 'high',   -7.7847, 110.3987, 'https://example.com/ambar.jpg',       'Royal heritage hotel near Plaza Ambarrukmo'),
 ('Greenhost Boutique Hotel',      12, 480000, 4.2, 'medium', -7.8133, 110.3614, 'https://example.com/greenhost.jpg',   'Eco-friendly boutique near Prawirotaman'),
 ('Hotel Neo Malioboro',           12, 420000, 4.0, 'medium', -7.7918, 110.3676, 'https://example.com/neo.jpg',         'Modern hotel right at Malioboro'),
