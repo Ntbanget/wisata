@@ -245,16 +245,28 @@ const CustomPage = () => {
             {/* Destinations Selection */}
             <div className="card p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Select Destinations</h2>
-              
-              <div className="mb-4">
+
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm text-gray-600">
-                  Selected: {selectedPlaces.length} destinations
+                  Selected: <span className="font-semibold text-gray-900">{selectedPlaces.length}</span> of {availablePlaces.length} destinations
                 </p>
+                {selectedPlaces.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPlaces([])}
+                    className="text-xs text-red-600 hover:text-red-700 font-medium"
+                  >
+                    Clear all destinations
+                  </button>
+                )}
               </div>
+              <p className="text-xs text-gray-500 mb-3">
+                Tip: click a destination to add it. Click it again (or use the × button on the right) to remove it.
+              </p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {availablePlaces.map((place) => {
-                  const isSelected = selectedPlaces.find(p => p.id === place.id);
+                  const isSelected = !!selectedPlaces.find(p => p.id === place.id);
                   return (
                     <div
                       key={place.id}
@@ -267,18 +279,20 @@ const CustomPage = () => {
                     >
                       <div className="flex items-start space-x-3">
                         <div className="text-lg mt-1">{getPlaceCategoryIcon(place.category)}</div>
-                        <div className="flex-grow">
+                        <div className="flex-grow min-w-0">
                           <h3 className="font-medium text-gray-900">{place.name}</h3>
                           <div className="flex items-center justify-between text-sm text-gray-600 mt-1">
                             <span className="badge-primary">{place.category}</span>
                             <span>{formatCurrency(place.ticket_price)}</span>
                           </div>
                         </div>
-                        <div className="w-5 h-5 border-2 rounded-full flex items-center justify-center mt-1">
-                          {isSelected && (
-                            <div className="w-3 h-3 bg-primary-600 rounded-full"></div>
-                          )}
-                        </div>
+                        {isSelected ? (
+                          <div className="text-xs font-medium text-primary-700 mt-1">
+                            Selected
+                          </div>
+                        ) : (
+                          <div className="w-5 h-5 border-2 rounded-full mt-1" />
+                        )}
                       </div>
                     </div>
                   );
@@ -332,16 +346,27 @@ const CustomPage = () => {
                     Destinations ({selectedPlaces.length})
                   </h4>
                   <div className="space-y-2">
-                    {selectedPlaces.map((place, index) => (
-                      <div key={index} className="bg-gray-50 rounded-lg p-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <span className="text-sm">{getPlaceCategoryIcon(place.category)}</span>
-                            <span className="text-sm font-medium text-gray-900">{place.name}</span>
+                    {selectedPlaces.map((place) => (
+                      <div key={place.id} className="bg-gray-50 rounded-lg p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center space-x-2 min-w-0">
+                            <span className="text-sm flex-shrink-0">{getPlaceCategoryIcon(place.category)}</span>
+                            <span className="text-sm font-medium text-gray-900 truncate">{place.name}</span>
                           </div>
-                          <span className="text-sm text-gray-600">
-                            {formatCurrency(place.ticket_price)}
-                          </span>
+                          <div className="flex items-center space-x-2 flex-shrink-0">
+                            <span className="text-sm text-gray-600">
+                              {formatCurrency(place.ticket_price)}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handlePlaceToggle(place)}
+                              className="text-gray-400 hover:text-red-600 p-1 rounded transition-colors"
+                              title={`Remove ${place.name}`}
+                              aria-label={`Remove ${place.name}`}
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}

@@ -201,7 +201,7 @@ const MapView = ({
   return (
     <div className="relative">
       {/* Map Legend */}
-      <div className="absolute top-4 left-4 z-10 bg-white rounded-lg shadow-soft p-3">
+      <div className="absolute top-4 left-4 z-[1000] bg-white rounded-lg shadow-soft p-3">
         <h4 className="font-medium text-gray-900 mb-2">Legend</h4>
         <div className="space-y-1 text-sm">
           <div className="flex items-center space-x-2">
@@ -330,7 +330,7 @@ const MapView = ({
 
       {/* Selected Items Summary */}
       {(selectedHotel || selectedPlaces.length > 0) && (
-        <div className="absolute bottom-4 right-4 z-10 bg-white rounded-lg shadow-soft p-4 w-72 max-h-[80vh] overflow-y-auto">
+        <div className="absolute top-4 right-4 z-[1000] bg-white rounded-lg shadow-medium border border-gray-200 p-4 w-72 max-h-[calc(100%-2rem)] overflow-y-auto">
           <div className="flex items-center justify-between mb-2">
             <h4 className="font-semibold text-gray-900">Your Trip</h4>
             <button
