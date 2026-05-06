@@ -74,9 +74,9 @@ const PackagePage = () => {
     navigate(`/detail/${packageData.id}`);
   };
 
-  const handleCustomize = (packageData) => {
-    setSelectedPackage(packageData);
-    navigate(`/custom/${packageData.id}`);
+  // Packages are FIXED. To customize, users go to Explore Map instead.
+  const handleGoToExplore = () => {
+    navigate('/explore');
   };
 
   const handleShare = async (packageData) => {
@@ -293,10 +293,11 @@ const PackagePage = () => {
                       View Details
                     </button>
                     <button
-                      onClick={() => handleCustomize(packageData)}
+                      onClick={handleGoToExplore}
                       className="flex-1 btn-outline text-sm"
+                      title="Build your own custom trip on Explore Map"
                     >
-                      Customize
+                      Custom (Jelajahi Peta)
                     </button>
                     <button
                       onClick={() => handleShare(packageData)}

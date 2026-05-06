@@ -71,8 +71,9 @@ const DetailPage = () => {
     }
   };
 
-  const handleCustomize = () => {
-    navigate(`/custom/${packageId}`);
+  // Packages are FIXED — to customize, users go to Explore Map and build their own trip.
+  const handleGoToExplore = () => {
+    navigate('/explore');
   };
 
   const handleViewMap = () => {
@@ -167,11 +168,11 @@ const DetailPage = () => {
             
             <div className="flex space-x-4 mt-4 md:mt-0">
               <button
-                onClick={handleCustomize}
+                onClick={handleGoToExplore}
                 className="btn-outline"
-                title="Build a custom trip starting from this package"
+                title="Build your own custom trip on Explore Map"
               >
-                Build Custom Trip
+                Buat Trip Custom (Jelajahi Peta)
               </button>
               <button
                 onClick={handleCheckout}
@@ -262,12 +263,12 @@ const DetailPage = () => {
                     <span>View Map</span>
                   </button>
                   <button
-                    onClick={handleCustomize}
+                    onClick={handleGoToExplore}
                     className="flex items-center justify-center space-x-2 p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200"
-                    title="Build a custom trip starting from this package"
+                    title="Build your own custom trip on Explore Map"
                   >
                     <Calendar className="w-5 h-5 text-primary-600" />
-                    <span>Build Custom Trip</span>
+                    <span>Trip Custom (Jelajahi Peta)</span>
                   </button>
                 </div>
               </div>

@@ -112,7 +112,7 @@ INSERT INTO hotels (name, city_id, price_per_night, rating, category, lat, lng, 
 ('Hotel Regina Pemalang',         10, 380000, 3.8, 'medium', -6.8929, 109.3760, 'https://example.com/regina.jpg',  'City hotel in Pemalang center'),
 ('Hotel Winner Pemalang',         10, 320000, 3.6, 'low',    -6.8908, 109.3792, 'https://example.com/winner.jpg',  'Budget hotel near Alun-Alun Pemalang'),
 ('Hotel Kencana Pemalang',        10, 480000, 4.0, 'medium', -6.8950, 109.3760, 'https://example.com/kencana.jpg', 'Mid-range hotel with restaurant'),
-('Pantai Widuri Resort',          10, 620000, 4.2, 'high',   -6.8540, 109.3739, 'https://example.com/widuri-r.jpg','Beachfront resort at Pantai Widuri'),
+('Pantai Widuri Resort',          10, 620000, 4.2, 'high',   -6.8597, 109.3782, 'https://example.com/widuri-r.jpg','Beachfront resort at Pantai Widuri'),
 ('Hotel Lembah Asri Karangreja',  10, 450000, 4.0, 'medium', -7.2305, 109.4351, 'https://example.com/lembah.jpg',  'Hotel near D''LAS Lembah Asri Serang');
 
 -- ===== Kendal (city_id=11, center: -6.9197, 110.2030) =====
@@ -232,8 +232,8 @@ INSERT INTO tourist_places (name, city_id, ticket_price, category, lat, lng, ima
 
 -- ===== Pemalang =====
 INSERT INTO tourist_places (name, city_id, ticket_price, category, lat, lng, image_url, description) VALUES
-('Pantai Widuri Pemalang',            10, 10000, 'Beach',      -6.8504, 109.3756, 'https://example.com/widuri.jpg',    'North-coast beach with waterpark'),
-('Widuri Water Park',                 10, 35000, 'Recreation', -6.8519, 109.3756, 'https://example.com/waterpark.jpg', 'Family water park beside Pantai Widuri'),
+('Pantai Widuri Pemalang',            10, 10000, 'Beach',      -6.8567, 109.3789, 'https://example.com/widuri.jpg',    'North-coast beach with waterpark'),
+('Widuri Water Park',                 10, 35000, 'Recreation', -6.8595, 109.3779, 'https://example.com/waterpark.jpg', 'Family water park beside Pantai Widuri'),
 ('Pantai Blendung',                   10, 5000,  'Beach',      -6.8174, 109.4906, 'https://example.com/blendung.jpg',  'Quiet beach with mangrove'),
 ('Curug Bengkawah',                   10, 10000, 'Nature',     -7.0058, 109.5181, 'https://example.com/bengkawah.jpg', 'Twin waterfall in Belik'),
 ('Curug Sibedil',                     10, 8000,  'Nature',     -7.0024, 109.5119, 'https://example.com/sibedil.jpg',   'Tiered waterfall in Watukumpul'),

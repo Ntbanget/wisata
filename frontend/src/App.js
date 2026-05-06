@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { BookingProvider } from './context/BookingContext';
 import Navbar from './components/Navbar';
@@ -7,7 +7,6 @@ import Footer from './components/Footer';
 import LandingPage from './pages/LandingPage';
 import PackagePage from './pages/PackagePage';
 import DetailPage from './pages/DetailPage';
-import CustomPage from './pages/CustomPage';
 import MapPage from './pages/MapPage';
 import ExploreMap from './pages/ExploreMap';
 import CheckoutPage from './pages/CheckoutPage';
@@ -26,7 +25,9 @@ function App() {
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/packages" element={<PackagePage />} />
                 <Route path="/detail/:packageId" element={<DetailPage />} />
-                <Route path="/custom/:packageId" element={<CustomPage />} />
+                {/* Old /custom route is deprecated. Packages are FIXED; users
+                    who want to build their own trip are sent to Explore Map. */}
+                <Route path="/custom/:packageId" element={<Navigate to="/explore" replace />} />
                 <Route path="/map/:packageId" element={<MapPage />} />
                 <Route path="/explore" element={<ExploreMap />} />
                 <Route path="/checkout/:packageId" element={<CheckoutPage />} />
