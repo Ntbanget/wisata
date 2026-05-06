@@ -27,26 +27,44 @@ const CheckoutPage = () => {
   }, [packageId]);
 
   const loadPackageData = () => {
-    if (selectedPackage && selectedPackage.id === parseInt(packageId)) {
+    const numericId = parseInt(packageId);
+
+    // Prefer current in-memory selection
+    if (selectedPackage && selectedPackage.id === numericId) {
       setPackageData(selectedPackage);
-    } else {
-      const savedResults = sessionStorage.getItem('searchResults');
-      if (savedResults) {
+      return;
+    }
+
+    // Custom trip path: id=0 from /explore "Book This Trip"
+    if (numericId === 0) {
+      const savedCustom = sessionStorage.getItem('customPackage');
+      if (savedCustom) {
         try {
-          const results = JSON.parse(savedResults);
-          const foundPackage = results.packages.find(p => p.id === parseInt(packageId));
-          if (foundPackage) {
-            setPackageData(foundPackage);
-          } else {
-            navigate('/packages');
-          }
+          setPackageData(JSON.parse(savedCustom));
+          return;
         } catch (error) {
-          navigate('/packages');
+          // fall through
         }
-      } else {
-        navigate('/packages');
+      }
+      navigate('/explore');
+      return;
+    }
+
+    // Fallback: pre-made package from search results
+    const savedResults = sessionStorage.getItem('searchResults');
+    if (savedResults) {
+      try {
+        const results = JSON.parse(savedResults);
+        const foundPackage = results.packages.find(p => p.id === numericId);
+        if (foundPackage) {
+          setPackageData(foundPackage);
+          return;
+        }
+      } catch (error) {
+        // fall through
       }
     }
+    navigate('/packages');
   };
 
   const validateForm = () => {
@@ -143,7 +161,11 @@ const CheckoutPage = () => {
   };
 
   const handleBack = () => {
-    navigate(`/detail/${packageId}`);
+    if (packageData?.isCustom || parseInt(packageId) === 0) {
+      navigate('/explore');
+    } else {
+      navigate(`/detail/${packageId}`);
+    }
   };
 
   if (!packageData) {
@@ -206,8 +228,19 @@ const CheckoutPage = () => {
               <ArrowLeft className="w-5 h-5 text-gray-600" />
             </button>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Checkout</h1>
-              <p className="text-gray-600">Complete your booking</p>
+              <div className="flex items-center space-x-3">
+                <h1 className="text-2xl font-bold text-gray-900">Checkout</h1>
+                {packageData?.isCustom && (
+                  <span className="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-700">
+                    Custom Trip
+                  </span>
+                )}
+              </div>
+              <p className="text-gray-600">
+                {packageData?.isCustom
+                  ? `Your custom trip with ${packageData.hotel.name}`
+                  : 'Complete your booking'}
+              </p>
             </div>
           </div>
         </div>

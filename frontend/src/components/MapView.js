@@ -161,12 +161,12 @@ const MapView = ({
   // Calculate route coordinates for polyline
   const getRouteCoordinates = () => {
     if (!selectedHotel || selectedPlaces.length === 0) return [];
-    
+
     const coords = [
-      [selectedHotel.lat, selectedHotel.lng],
-      ...selectedPlaces.map(place => [place.lat, place.lng])
+      [Number(selectedHotel.lat), Number(selectedHotel.lng)],
+      ...selectedPlaces.map((place) => [Number(place.lat), Number(place.lng)])
     ];
-    
+
     return coords;
   };
 
@@ -174,8 +174,8 @@ const MapView = ({
   const getMapBounds = () => {
     if (selectedHotel && selectedPlaces.length > 0) {
       const allPoints = [
-        [selectedHotel.lat, selectedHotel.lng],
-        ...selectedPlaces.map(place => [place.lat, place.lng])
+        [Number(selectedHotel.lat), Number(selectedHotel.lng)],
+        ...selectedPlaces.map((place) => [Number(place.lat), Number(place.lng)])
       ];
       return allPoints;
     }
@@ -234,61 +234,87 @@ const MapView = ({
         />
 
         {/* Hotel Markers */}
-        {hotels.map((hotel) => (
-          <Marker
-            key={`hotel-${hotel.id}`}
-            position={[hotel.lat, hotel.lng]}
-            icon={selectedHotel?.id === hotel.id ? selectedHotelIcon : hotelIcon}
-          >
-            <Popup>
-              <div className="p-2">
-                <h3 className="font-bold text-lg">{hotel.name}</h3>
-                <p className="text-sm text-gray-600 mb-1">Hotel</p>
-                <p className="text-sm font-medium">
-                  {formatCurrency(hotel.price_per_night)}/night
-                </p>
-                <p className="text-sm text-gray-600">
-                  Rating: {hotel.rating} ⭐
-                </p>
-                {selectedHotel?.id !== hotel.id && (
-                  <button
-                    onClick={() => setSelectedHotel(hotel)}
-                    className="mt-2 text-xs bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
-                  >
-                    Select Hotel
-                  </button>
-                )}
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+        {hotels.map((hotel) => {
+          const isSelectedHotel = selectedHotel?.id === hotel.id;
+          return (
+            <Marker
+              key={`hotel-${hotel.id}`}
+              position={[Number(hotel.lat), Number(hotel.lng)]}
+              icon={isSelectedHotel ? selectedHotelIcon : hotelIcon}
+            >
+              <Popup>
+                <div className="p-2 min-w-[180px]">
+                  <h3 className="font-bold text-base">{hotel.name}</h3>
+                  <p className="text-xs text-gray-600 mb-1">Hotel</p>
+                  <p className="text-sm font-medium">
+                    {formatCurrency(hotel.price_per_night)}/night
+                  </p>
+                  <p className="text-xs text-gray-600">
+                    Rating: {Number(hotel.rating).toFixed(1)} ⭐
+                  </p>
+                  {isSelectedHotel ? (
+                    <button
+                      onClick={() => setSelectedHotel(null)}
+                      className="mt-2 w-full text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
+                    >
+                      Remove Hotel
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setSelectedHotel(hotel)}
+                      className="mt-2 w-full text-xs bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
+                    >
+                      Select Hotel
+                    </button>
+                  )}
+                </div>
+              </Popup>
+            </Marker>
+          );
+        })}
 
         {/* Tourist Place Markers */}
-        {touristPlaces.map((place) => (
-          <Marker
-            key={`place-${place.id}`}
-            position={[place.lat, place.lng]}
-            icon={selectedPlaces.some(p => p.id === place.id) ? selectedPlaceIcon : placeIcon}
-          >
-            <Popup>
-              <div className="p-2">
-                <h3 className="font-bold text-lg">{place.name}</h3>
-                <p className="text-sm text-gray-600 mb-1">{place.category}</p>
-                <p className="text-sm font-medium">
-                  {formatCurrency(place.ticket_price)} entry
-                </p>
-                {!selectedPlaces.some(p => p.id === place.id) && (
-                  <button
-                    onClick={() => setSelectedPlaces([...selectedPlaces, place])}
-                    className="mt-2 text-xs bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600"
-                  >
-                    Add to Trip
-                  </button>
-                )}
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+        {touristPlaces.map((place) => {
+          const isSelectedPlace = selectedPlaces.some((p) => p.id === place.id);
+          return (
+            <Marker
+              key={`place-${place.id}`}
+              position={[Number(place.lat), Number(place.lng)]}
+              icon={isSelectedPlace ? selectedPlaceIcon : placeIcon}
+            >
+              <Popup>
+                <div className="p-2 min-w-[180px]">
+                  <h3 className="font-bold text-base">{place.name}</h3>
+                  <p className="text-xs text-gray-600 mb-1">{place.category}</p>
+                  <p className="text-sm font-medium">
+                    {formatCurrency(place.ticket_price)} entry
+                  </p>
+                  {isSelectedPlace ? (
+                    <button
+                      onClick={() =>
+                        setSelectedPlaces((prev) => prev.filter((p) => p.id !== place.id))
+                      }
+                      className="mt-2 w-full text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
+                    >
+                      Remove from Trip
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() =>
+                        setSelectedPlaces((prev) =>
+                          prev.some((p) => p.id === place.id) ? prev : [...prev, place]
+                        )
+                      }
+                      className="mt-2 w-full text-xs bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600"
+                    >
+                      Add to Trip
+                    </button>
+                  )}
+                </div>
+              </Popup>
+            </Marker>
+          );
+        })}
 
         {/* Route Line */}
         {selectedHotel && selectedPlaces.length > 0 && (

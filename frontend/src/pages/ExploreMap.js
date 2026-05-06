@@ -32,6 +32,12 @@ const ExploreMap = () => {
       isCustom: true
     };
     setSelectedPackage(customPackage);
+    // Persist as backup so a page reload at /checkout/0 still has data
+    try {
+      sessionStorage.setItem('customPackage', JSON.stringify(customPackage));
+    } catch (err) {
+      // ignore quota errors
+    }
     navigate('/checkout/0');
   };
 
@@ -226,6 +232,19 @@ const ExploreMap = () => {
           </div>
         </div>
       )}
+
+      {/* How-to hint */}
+      <div className="container pt-6">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-900">
+          <p className="font-semibold mb-1">Build your own trip from the map:</p>
+          <ol className="list-decimal list-inside space-y-1">
+            <li>Click <span className="font-medium">Filters</span> at the top right and pick a city (optional).</li>
+            <li>Click a <span className="text-blue-700 font-medium">blue hotel marker</span> &rarr; "Select Hotel".</li>
+            <li>Click any <span className="text-green-700 font-medium">green destination marker</span> &rarr; "Add to Trip" (you can add more than one).</li>
+            <li>Check the running total in the "Your Trip" panel at the bottom-right, then click <span className="font-medium">Book This Trip</span>.</li>
+          </ol>
+        </div>
+      </div>
 
       {/* Map */}
       <div className="container py-8">
