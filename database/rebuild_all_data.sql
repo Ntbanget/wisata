@@ -118,9 +118,9 @@ INSERT INTO hotels (name, city_id, price_per_night, rating, category, lat, lng, 
 -- ===== Kendal (city_id=11, center: -6.9197, 110.2030) =====
 INSERT INTO hotels (name, city_id, price_per_night, rating, category, lat, lng, image_url, description) VALUES
 ('Sae Inn Kendal',              11, 320000, 3.7, 'medium', -6.9189, 110.2042, 'https://example.com/saeinn.jpg',     'Hotel in Kendal town'),
-('Plataran Heritage Kendal',    11, 580000, 4.3, 'high',   -7.0392, 110.0710, 'https://example.com/plataran-k.jpg','Mid-range hotel near Curug Sewu'),
+('Plataran Heritage Kendal',    11, 580000, 4.3, 'high',   -7.0945, 110.0930, 'https://example.com/plataran-k.jpg','Mid-range hotel near Curug Sewu'),
 ('Hotel Kendal Permai',         11, 380000, 3.9, 'medium', -6.9188, 110.2055, 'https://example.com/permai.jpg',     'Family hotel in Kendal'),
-('Curug Sewu Hotel & Cottages', 11, 380000, 3.8, 'medium', -7.0388, 110.0698, 'https://example.com/cottages.jpg',   'Cottages near Curug Sewu waterfall');
+('Curug Sewu Hotel & Cottages', 11, 380000, 3.8, 'medium', -7.0939, 110.0925, 'https://example.com/cottages.jpg',   'Cottages near Curug Sewu waterfall');
 
 -- ===== Yogyakarta (city_id=12, center: -7.7956, 110.3695) =====
 INSERT INTO hotels (name, city_id, price_per_night, rating, category, lat, lng, image_url, description) VALUES
@@ -143,14 +143,14 @@ INSERT INTO hotels (name, city_id, price_per_night, rating, category, lat, lng, 
 -- ===== Semarang =====
 INSERT INTO tourist_places (name, city_id, ticket_price, category, lat, lng, image_url, description) VALUES
 ('Lawang Sewu',                       1, 20000, 'Historical', -6.9839, 110.4106, 'https://example.com/lawangsewu.jpg', 'Iconic Dutch colonial railway building'),
-('Sam Poo Kong',                      1, 28000, 'Cultural',   -6.9994, 110.3927, 'https://example.com/samp.jpg',        'Historic Chinese temple of Admiral Cheng Ho'),
-('Tugu Muda',                         1, 0,     'Monument',   -6.9842, 110.4126, 'https://example.com/tugu.jpg',        'Independence-era monument in city center'),
-('Masjid Agung Jawa Tengah',          1, 0,     'Religious',  -6.9839, 110.4486, 'https://example.com/masjidagung.jpg', 'Grand mosque with retractable umbrella plaza'),
-('Kota Lama Semarang',                1, 0,     'Historical', -6.9684, 110.4283, 'https://example.com/kotalama.jpg',    'Old colonial quarter with Blenduk Church'),
-('Kampung Pelangi Semarang',          1, 0,     'Cultural',   -6.9913, 110.4144, 'https://example.com/pelangi.jpg',     'Colorful hillside village'),
-('Klenteng Tay Kak Sie',              1, 0,     'Religious',  -6.9676, 110.4278, 'https://example.com/taykak.jpg',      'Largest Chinese temple in Semarang'),
-('Pantai Marina Semarang',            1, 5000,  'Beach',      -6.9505, 110.3878, 'https://example.com/marina.jpg',      'North-coast recreation beach'),
-('Taman Indonesia Kaya',              1, 0,     'Park',       -6.9877, 110.4204, 'https://example.com/tik.jpg',         'Cultural park near Tugu Muda');
+('Sam Poo Kong',                      1, 28000, 'Cultural',   -6.9959, 110.3984, 'https://example.com/samp.jpg',        'Historic Chinese temple of Admiral Cheng Ho'),
+('Tugu Muda',                         1, 0,     'Monument',   -6.9841, 110.4096, 'https://example.com/tugu.jpg',        'Independence-era monument in city center'),
+('Masjid Agung Jawa Tengah',          1, 0,     'Religious',  -6.9836, 110.4456, 'https://example.com/masjidagung.jpg', 'Grand mosque with retractable umbrella plaza'),
+('Kota Lama Semarang',                1, 0,     'Historical', -6.9672, 110.4269, 'https://example.com/kotalama.jpg',    'Old colonial quarter with Blenduk Church'),
+('Kampung Pelangi Semarang',          1, 0,     'Cultural',   -6.9878, 110.4085, 'https://example.com/pelangi.jpg',     'Colorful hillside village'),
+('Klenteng Tay Kak Sie',              1, 0,     'Religious',  -6.9740, 110.4277, 'https://example.com/taykak.jpg',      'Largest Chinese temple in Semarang'),
+('Pantai Marina Semarang',            1, 5000,  'Beach',      -6.9477, 110.3901, 'https://example.com/marina.jpg',      'North-coast recreation beach'),
+('Taman Indonesia Kaya',              1, 0,     'Park',       -6.9921, 110.4200, 'https://example.com/tik.jpg',         'Cultural park near Tugu Muda');
 
 -- ===== Surakarta / Solo =====
 INSERT INTO tourist_places (name, city_id, ticket_price, category, lat, lng, image_url, description) VALUES
@@ -243,14 +243,16 @@ INSERT INTO tourist_places (name, city_id, ticket_price, category, lat, lng, ima
 
 -- ===== Kendal =====
 INSERT INTO tourist_places (name, city_id, ticket_price, category, lat, lng, image_url, description) VALUES
-('Curug Sewu',                        11, 15000, 'Nature',     -7.0367, 110.0694, 'https://example.com/curugsewu.jpg', 'Three-tier waterfall in Patean, the highest in Central Java'),
-('Pantai Sendang Sikucing',           11, 10000, 'Beach',      -6.9025, 110.0394, 'https://example.com/sikucing.jpg',  'Sandy beach with calm waves'),
-('Pantai Cahaya Kendal',              11, 10000, 'Beach',      -6.9134, 110.0512, 'https://example.com/cahaya.jpg',    'Beach with sunset views'),
-('Kampung Jawa Sekatul',              11, 15000, 'Cultural',   -7.0892, 110.1833, 'https://example.com/sekatul.jpg',   'Traditional Javanese village resort'),
-('Bukit Cinta Kendal',                11, 8000,  'Nature',     -7.1023, 110.2156, 'https://example.com/bukitcinta.jpg','Romantic hilltop viewpoint'),
-('Goa Kiskendo Kendal',               11, 10000, 'Nature',     -7.1567, 110.1456, 'https://example.com/kiskendo.jpg',  'Limestone cave with stalactites'),
-('Curug Penglebur',                   11, 5000,  'Nature',     -7.0723, 110.1923, 'https://example.com/penglebur.jpg', 'Hidden waterfall in lush forest'),
-('Air Terjun Lawe Kendal',            11, 5000,  'Nature',     -7.1900, 110.1734, 'https://example.com/lawe.jpg',      'Twin waterfalls in mountainous area');
+('Curug Sewu',                        11, 15000, 'Nature',     -7.0933, 110.0927, 'https://example.com/curugsewu.jpg', 'Three-tier waterfall in Patean, the highest in Central Java'),
+('Pantai Sendang Sikucing',           11, 10000, 'Beach',      -6.9018, 110.0669, 'https://example.com/sikucing.jpg',  'Sandy beach with calm waves'),
+('Pantai Cahaya Kendal',              11, 10000, 'Beach',      -6.9020, 110.0671, 'https://example.com/cahaya.jpg',    'Sea-park resort at Sendang Sikucing'),
+('Kampung Jawa Sekatul',              11, 15000, 'Cultural',   -7.1393, 110.3006, 'https://example.com/sekatul.jpg',   'Kampung Jowo Sekatul traditional village (Margosari, Limbangan)'),
+-- The following Kendal entries (Bukit Cinta, Goa Kiskendo, Curug Penglebur,
+-- Air Terjun Lawe) were removed because OpenStreetMap could not verify their
+-- coordinates and user reported they were misplaced. Re-add later when real
+-- coords are known. Goa Kiskendo Kendal in Trayu/Singorojo is below as a best
+-- estimate from the Singorojo subdistrict centroid (please verify in Google Maps).
+('Goa Kiskendo Kendal',               11, 10000, 'Nature',     -7.1167, 110.1583, 'https://example.com/kiskendo.jpg',  'Limestone cave in Singorojo (location approximate)');
 
 -- ===== Yogyakarta =====
 INSERT INTO tourist_places (name, city_id, ticket_price, category, lat, lng, image_url, description) VALUES
