@@ -124,7 +124,7 @@ const LandingPage = () => {
             </p>
 
             {/* Search Form */}
-            <form onSubmit={handleSearch} className="bg-white rounded-2xl shadow-large p-6 md:p-8 max-w-2xl mx-auto animate-slide-up">
+            <form id="search-form" onSubmit={handleSearch} className="bg-white rounded-2xl shadow-large p-6 md:p-8 max-w-2xl mx-auto animate-slide-up">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div>
                   <label className="block text-gray-700 font-medium mb-2">
@@ -243,8 +243,12 @@ const LandingPage = () => {
                   </p>
                   <button
                     onClick={() => {
-                      setSelectedCity(city.id);
+                      setSelectedCity(String(city.id));
                       setBudget('1500000');
+                      const form = document.getElementById('search-form');
+                      if (form) {
+                        form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }
                     }}
                     className="text-primary-600 hover:text-primary-700 font-medium flex items-center space-x-1 group-hover:space-x-2 transition-all duration-200"
                   >
@@ -320,7 +324,14 @@ const LandingPage = () => {
             Join thousands of travelers who have discovered the beauty of Central Java with our smart travel planner
           </p>
           <button
-            onClick={() => document.getElementById('search-form').scrollIntoView({ behavior: 'smooth' })}
+            onClick={() => {
+              const form = document.getElementById('search-form');
+              if (form) {
+                form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              } else {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }
+            }}
             className="btn-accent text-lg px-8 py-3"
           >
             Start Planning Now
