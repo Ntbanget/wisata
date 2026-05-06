@@ -27,7 +27,7 @@ INSERT INTO tourist_places (name, city_id, ticket_price, category, lat, lng, ima
 ('Curug Bengkawah', 10, 10000, 'Nature', -6.9933, 109.5333, 'https://example.com/bengkawah.jpg', 'Twin waterfall in Belik, Pemalang'),
 ('Curug Sibedil', 10, 8000, 'Nature', -7.0023, 109.5210, 'https://example.com/sibedil.jpg', 'Tiered waterfall in Watukumpul'),
 ('Aquarium Purbasari', 10, 25000, 'Recreation', -7.4126, 109.3675, 'https://example.com/purbasari.jpg', 'Owabong Aquarium with marine life and fish exhibits'),
-('Desa Wisata Banjardawa (Dlas)', 10, 5000, 'Cultural', -6.9032, 109.4012, 'https://example.com/banjardawa.jpg', 'Tourist village with traditional Pemalang crafts'),
+('D''LAS Desa Wisata Lembah Asri Serang', 10, 25000, 'Recreation', -7.2289, 109.4339, 'https://example.com/dlas.jpg', 'D''LAS in Karangreja: family park on the slopes of Mount Slamet with rides, mini-zoo, pine forest and viewpoint'),
 ('Bukit Mendelem', 10, 10000, 'Nature', -7.0312, 109.4823, 'https://example.com/mendelem.jpg', 'Hilltop with panoramic mountain views'),
 ('Telaga Silating', 10, 8000, 'Nature', -6.9456, 109.4698, 'https://example.com/silating.jpg', 'Mountain lake with cool climate');
 
