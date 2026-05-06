@@ -40,7 +40,7 @@ class BookingController {
       }
 
       // Validate city_id
-      if (!validator.isInt(city_id, { min: 1 })) {
+      if (!validator.isInt(String(city_id), { min: 1 })) {
         return res.status(400).json({
           success: false,
           error: 'Invalid city_id'
@@ -51,7 +51,7 @@ class BookingController {
       const totalPriceNum = parseFloat(total_price);
       const budgetNum = parseFloat(budget);
 
-      if (!validator.isFloat(total_price, { min: 0 }) || !validator.isFloat(budget, { min: 0 })) {
+      if (!validator.isFloat(String(total_price), { min: 0 }) || !validator.isFloat(String(budget), { min: 0 })) {
         return res.status(400).json({
           success: false,
           error: 'Prices must be positive numbers'
@@ -66,7 +66,7 @@ class BookingController {
       }
 
       // Validate hotel_id
-      if (!validator.isInt(hotel_id, { min: 1 })) {
+      if (!validator.isInt(String(hotel_id), { min: 1 })) {
         return res.status(400).json({
           success: false,
           error: 'Invalid hotel_id'
@@ -85,8 +85,8 @@ class BookingController {
 
         touristPlacesArray = tourist_places.filter(place => 
           place && 
-          validator.isInt(place.id, { min: 1}) && 
-          validator.isFloat(place.ticket_price, { min: 0 })
+          validator.isInt(String(place.id), { min: 1}) && 
+          validator.isFloat(String(place.ticket_price), { min: 0 })
         );
 
         if (touristPlacesArray.length === 0) {

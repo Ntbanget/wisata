@@ -2,12 +2,13 @@
 
 // Format currency to Indonesian Rupiah
 export const formatCurrency = (amount) => {
+  const num = Number(amount);
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',
     currency: 'IDR',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(amount);
+  }).format(Number.isFinite(num) ? num : 0);
 };
 
 // Format date to readable format

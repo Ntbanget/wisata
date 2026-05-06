@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Filter, MapPin, Hotel, Camera } from 'lucide-react';
 import { apiService } from '../services/api';
+import { useBooking } from '../context/BookingContext';
 import MapView from '../components/MapView';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
 
 const ExploreMap = () => {
   const navigate = useNavigate();
+  const { setSelectedPackage } = useBooking();
   const [cities, setCities] = useState([]);
   const [selectedCity, setSelectedCity] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -19,6 +21,19 @@ const ExploreMap = () => {
     minPrice: '',
     maxPrice: ''
   });
+
+  const handleBookCustomTrip = ({ hotel, tourist_places, total_price }) => {
+    const customPackage = {
+      id: 0,
+      hotel,
+      tourist_places,
+      total_price,
+      budget: total_price,
+      isCustom: true
+    };
+    setSelectedPackage(customPackage);
+    navigate('/checkout/0');
+  };
 
   useEffect(() => {
     loadCities();
@@ -218,6 +233,7 @@ const ExploreMap = () => {
           <MapView 
             cityId={selectedCity?.id}
             height="600px"
+            onBookCustomTrip={handleBookCustomTrip}
           />
         </div>
       </div>

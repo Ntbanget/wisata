@@ -91,7 +91,7 @@ class PackageController {
       }
 
       // Validate hotel_id
-      if (!validator.isInt(hotel_id, { min: 1 })) {
+      if (!validator.isInt(String(hotel_id), { min: 1 })) {
         return res.status(400).json({
           success: false,
           error: 'Invalid hotel_id'
@@ -108,7 +108,7 @@ class PackageController {
 
       // Validate each place ID
       for (const placeId of tourist_place_ids) {
-        if (!validator.isInt(placeId, { min: 1 })) {
+        if (!validator.isInt(String(placeId), { min: 1 })) {
           return res.status(400).json({
             success: false,
             error: `Invalid tourist_place_id: ${placeId}`
@@ -118,7 +118,7 @@ class PackageController {
 
       // Validate nights
       const nightsNum = parseInt(nights);
-      if (!validator.isInt(nights, { min: 1, max: 30 })) {
+      if (!validator.isInt(String(nights), { min: 1, max: 30 })) {
         return res.status(400).json({
           success: false,
           error: 'Nights must be between 1 and 30'
@@ -160,7 +160,7 @@ class PackageController {
       }
 
       // Validate hotel_id
-      if (!validator.isInt(hotel_id, { min: 1 })) {
+      if (!validator.isInt(String(hotel_id), { min: 1 })) {
         return res.status(400).json({
           success: false,
           error: 'Invalid hotel_id'
@@ -177,7 +177,7 @@ class PackageController {
 
       // Validate each place ID
       for (const placeId of tourist_place_ids) {
-        if (!validator.isInt(placeId, { min: 1 })) {
+        if (!validator.isInt(String(placeId), { min: 1 })) {
           return res.status(400).json({
             success: false,
             error: `Invalid tourist_place_id: ${placeId}`
@@ -187,7 +187,7 @@ class PackageController {
 
       // Validate budget
       const budgetNum = parseFloat(budget);
-      if (!validator.isFloat(budget, { min: 10000, max: 10000000 })) {
+      if (!validator.isFloat(String(budget), { min: 10000, max: 10000000 })) {
         return res.status(400).json({
           success: false,
           error: 'Budget must be between 10,000 and 10,000,000'

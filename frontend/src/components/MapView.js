@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
-import { Icon, divIcon } from 'leaflet';
+import { Icon } from 'leaflet';
 import { apiService } from '../services/api';
 import { formatCurrency } from '../utils/helpers';
 import LoadingSpinner from './LoadingSpinner';
@@ -14,7 +14,12 @@ Icon.Default.mergeOptions({
   shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
 });
 
-const MapView = ({ selectedPackage = null, cityId = null, height = '500px' }) => {
+const MapView = ({
+  selectedPackage = null,
+  cityId = null,
+  height = '500px',
+  onBookCustomTrip = null,
+}) => {
   const [hotels, setHotels] = useState([]);
   const [touristPlaces, setTouristPlaces] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -28,14 +33,44 @@ const MapView = ({ selectedPackage = null, cityId = null, height = '500px' }) =>
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cityId]);
 
   useEffect(() => {
     if (selectedPackage) {
       setSelectedHotel(selectedPackage.hotel);
       setSelectedPlaces(selectedPackage.tourist_places);
+    } else {
+      setSelectedHotel(null);
+      setSelectedPlaces([]);
     }
   }, [selectedPackage]);
+
+  const hotelPrice = selectedHotel ? Number(selectedHotel.price_per_night) || 0 : 0;
+  const placesPrice = selectedPlaces.reduce(
+    (sum, place) => sum + (Number(place.ticket_price) || 0),
+    0
+  );
+  const combinedTotal = hotelPrice + placesPrice;
+
+  const handleRemovePlace = (placeId) => {
+    setSelectedPlaces((prev) => prev.filter((p) => p.id !== placeId));
+  };
+
+  const handleClearSelection = () => {
+    setSelectedHotel(null);
+    setSelectedPlaces([]);
+  };
+
+  const handleBookTrip = () => {
+    if (typeof onBookCustomTrip === 'function' && selectedHotel && selectedPlaces.length > 0) {
+      onBookCustomTrip({
+        hotel: selectedHotel,
+        tourist_places: selectedPlaces,
+        total_price: combinedTotal,
+      });
+    }
+  };
 
   const loadData = async () => {
     setIsLoading(true);
@@ -269,26 +304,91 @@ const MapView = ({ selectedPackage = null, cityId = null, height = '500px' }) =>
 
       {/* Selected Items Summary */}
       {(selectedHotel || selectedPlaces.length > 0) && (
-        <div className="absolute bottom-4 right-4 z-10 bg-white rounded-lg shadow-soft p-3 max-w-xs">
-          <h4 className="font-medium text-gray-900 mb-2">Selected Items</h4>
-          
+        <div className="absolute bottom-4 right-4 z-10 bg-white rounded-lg shadow-soft p-4 w-72 max-h-[80vh] overflow-y-auto">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="font-semibold text-gray-900">Your Trip</h4>
+            <button
+              onClick={handleClearSelection}
+              className="text-xs text-red-600 hover:text-red-700 font-medium"
+              title="Clear all selections"
+            >
+              Clear
+            </button>
+          </div>
+
           {selectedHotel && (
-            <div className="mb-2">
-              <p className="text-sm font-medium">Hotel: {selectedHotel.name}</p>
-              <p className="text-xs text-gray-600">{formatCurrency(selectedHotel.price_per_night)}/night</p>
+            <div className="mb-3 pb-3 border-b border-gray-100">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-blue-700 uppercase tracking-wide">Hotel</p>
+                  <p className="text-sm font-medium text-gray-900 truncate">{selectedHotel.name}</p>
+                  <p className="text-xs text-gray-600">
+                    {formatCurrency(selectedHotel.price_per_night)} / night
+                  </p>
+                </div>
+                <button
+                  onClick={() => setSelectedHotel(null)}
+                  className="text-gray-400 hover:text-red-600 text-lg leading-none"
+                  title="Remove hotel"
+                >
+                  ×
+                </button>
+              </div>
             </div>
           )}
-          
+
           {selectedPlaces.length > 0 && (
-            <div>
-              <p className="text-sm font-medium">Places ({selectedPlaces.length}):</p>
-              <div className="text-xs text-gray-600">
-                {selectedPlaces.map(place => place.name).join(', ')}
-              </div>
-              <p className="text-xs font-medium mt-1">
-                Total: {formatCurrency(selectedPlaces.reduce((sum, place) => sum + place.ticket_price, 0))}
+            <div className="mb-3">
+              <p className="text-xs font-medium text-green-700 uppercase tracking-wide mb-1">
+                Destinations ({selectedPlaces.length})
               </p>
+              <ul className="space-y-1">
+                {selectedPlaces.map((place) => (
+                  <li
+                    key={place.id}
+                    className="flex items-start justify-between gap-2 text-sm text-gray-800"
+                  >
+                    <div className="min-w-0">
+                      <span className="font-medium truncate block">{place.name}</span>
+                      <span className="text-xs text-gray-500">
+                        {formatCurrency(place.ticket_price)}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => handleRemovePlace(place.id)}
+                      className="text-gray-400 hover:text-red-600 text-lg leading-none flex-shrink-0"
+                      title="Remove this destination"
+                    >
+                      ×
+                    </button>
+                  </li>
+                ))}
+              </ul>
             </div>
+          )}
+
+          <div className="border-t border-gray-200 pt-2 mt-2">
+            <div className="flex items-center justify-between text-sm font-semibold text-gray-900">
+              <span>Total</span>
+              <span>{formatCurrency(combinedTotal)}</span>
+            </div>
+          </div>
+
+          {onBookCustomTrip && (
+            <button
+              onClick={handleBookTrip}
+              disabled={!selectedHotel || selectedPlaces.length === 0}
+              className="w-full mt-3 btn-primary text-sm py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              title={
+                !selectedHotel
+                  ? 'Pick a hotel marker first'
+                  : selectedPlaces.length === 0
+                    ? 'Add at least one destination'
+                    : 'Book this custom trip'
+              }
+            >
+              Book This Trip
+            </button>
           )}
         </div>
       )}
