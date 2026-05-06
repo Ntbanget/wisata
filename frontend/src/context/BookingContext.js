@@ -17,6 +17,7 @@ const BOOKING_ACTIONS = {
   SET_SELECTED_PACKAGE: 'SET_SELECTED_PACKAGE',
   SET_CURRENT_BOOKING: 'SET_CURRENT_BOOKING',
   ADD_TO_BOOKING_HISTORY: 'ADD_TO_BOOKING_HISTORY',
+  SET_BOOKING_HISTORY: 'SET_BOOKING_HISTORY',
   CLEAR_BOOKING: 'CLEAR_BOOKING',
   UPDATE_BOOKING_STATUS: 'UPDATE_BOOKING_STATUS'
 };
@@ -63,7 +64,13 @@ const bookingReducer = (state, action) => {
         ...state,
         bookingHistory: [action.payload, ...state.bookingHistory]
       };
-    
+
+    case BOOKING_ACTIONS.SET_BOOKING_HISTORY:
+      return {
+        ...state,
+        bookingHistory: Array.isArray(action.payload) ? action.payload : []
+      };
+
     case BOOKING_ACTIONS.CLEAR_BOOKING:
       return {
         ...state,

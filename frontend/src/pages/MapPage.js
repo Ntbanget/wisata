@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, Clock, DollarSign } from 'lucide-react';
+import { ArrowLeft, MapPin, Clock, DollarSign, Navigation } from 'lucide-react';
 import { useBooking } from '../context/BookingContext';
 import { formatCurrency, calculateDistance, estimateTravelTime } from '../utils/helpers';
 import MapView from '../components/MapView';

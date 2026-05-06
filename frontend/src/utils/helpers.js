@@ -45,62 +45,23 @@ export const calculateDistance = (lat1, lon1, lat2, lon2) => {
   return R * c; // Distance in kilometers
 };
 
-// Generate Google Maps navigation URL
+// Generate OpenStreetMap directions URL
+// Uses OSM's directions page with the OSRM routing engine.
 export const generateMapsUrl = (hotel, destinations) => {
   if (!hotel || !destinations || destinations.length === 0) {
     return '#';
   }
 
-  const baseUrl = 'https://www.google.com/maps/dir/?api=1';
-  const origin = `${hotel.lat},${hotel.lng}`;
-  const destination = destinations[destinations.length - 1].lat + ',' + destinations[destinations.length - 1].lng;
-  
-  let waypoints = '';
-  if (destinations.length > 1) {
-    waypoints = destinations.slice(0, -1)
-      .map(dest => `${dest.lat},${dest.lng}`)
-      .join('|');
-  }
+  const points = [
+    `${hotel.lat},${hotel.lng}`,
+    ...destinations.map(dest => `${dest.lat},${dest.lng}`)
+  ];
 
-  const params = new URLSearchParams({
-    origin,
-    destination
-  });
+  const route = points.join(';');
+  const lastPoint = points[points.length - 1];
+  const [lastLat, lastLng] = lastPoint.split(',');
 
-  if (waypoints) {
-    params.append('waypoints', waypoints);
-  }
-
-  return `${baseUrl}&${params.toString()}`;
-};
-
-// Generate static map URL for preview
-export const generateStaticMapUrl = (hotel, destinations, width = 600, height = 400) => {
-  if (!hotel || !destinations || destinations.length === 0) {
-    return '';
-  }
-
-  const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
-  if (!apiKey) return '';
-
-  const markers = [];
-  
-  // Add hotel marker (blue)
-  markers.push(`color:blue|${hotel.lat},${hotel.lng}`);
-  
-  // Add destination markers (red)
-  destinations.forEach(dest => {
-    markers.push(`color:red|${dest.lat},${dest.lng}`);
-  });
-
-  const params = new URLSearchParams({
-    key: apiKey,
-    size: `${width}x${height}`,
-    maptype: 'roadmap',
-    markers: markers.join('|')
-  });
-
-  return `https://maps.googleapis.com/maps/api/staticmap?${params.toString()}`;
+  return `https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&route=${route}#map=12/${lastLat}/${lastLng}`;
 };
 
 // Validate email format

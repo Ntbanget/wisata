@@ -16,8 +16,7 @@ const dbConfig = {
   database: process.env.DB_NAME || 'wisata_db',
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0,
-  reconnect: true
+  queueLimit: 0
 };
 
 // Create connection pool

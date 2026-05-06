@@ -4,8 +4,9 @@
 
 - Node.js (v14 or higher)
 - MySQL (v5.7 or higher)
-- Google Maps API Key
 - Git
+
+> Maps use Leaflet + OpenStreetMap tiles, so **no API key is needed**.
 
 ## 🗄️ Database Setup
 
@@ -65,9 +66,8 @@
 
 3. **Configure Environment**
    ```bash
-   # Create .env file with your Google Maps API key
+   # Create .env file (optional — frontend defaults to http://localhost:5000/api)
    echo "REACT_APP_API_URL=http://localhost:5000/api" > .env
-   echo "REACT_APP_GOOGLE_MAPS_API_KEY=your_api_key_here" >> .env
    ```
 
 4. **Start Frontend**
@@ -76,18 +76,6 @@
    ```
    
    Frontend will run on: `http://localhost:3000`
-
-## 🔑 Google Maps API Setup
-
-1. **Get API Key**
-   - Go to [Google Cloud Console](https://console.cloud.google.com/)
-   - Create a new project or select existing one
-   - Enable "Maps JavaScript API" and "Directions API"
-   - Create API key with appropriate restrictions
-
-2. **Configure API Key**
-   - Add your API key to `frontend/.env`
-   - Set up API key restrictions for security
 
 ## 🧪 Testing
 
@@ -100,16 +88,16 @@
 2. **Test Frontend**
    - Open `http://localhost:3000` in browser
    - Test search functionality
-   - Test map integration (requires API key)
+   - Test map integration (Leaflet + OpenStreetMap, no API key needed)
 
 ## 📱 Features to Test
 
 - ✅ Multi-city selection
 - ✅ Budget-based package generation
 - ✅ Package customization
-- ✅ Interactive maps with routes
+- ✅ Interactive Leaflet maps with routes
 - ✅ Booking system
-- ✅ Google Maps navigation integration
+- ✅ OpenStreetMap navigation integration
 
 ## 🔧 Troubleshooting
 
@@ -126,12 +114,10 @@
 ### Frontend Issues
 - Clear browser cache
 - Check API URL configuration
-- Verify Google Maps API key is valid
 
 ### Map Issues
-- Ensure Google Maps API is enabled
-- Check API key restrictions
-- Verify network connectivity
+- Verify network connectivity to OpenStreetMap tile servers
+- Check the browser console for any tile-loading errors
 
 ## 📊 Database Statistics
 

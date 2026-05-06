@@ -26,8 +26,6 @@ const Navbar = () => {
     { name: 'Home', href: '/' },
     { name: 'Packages', href: '/packages' },
     { name: 'Explore Map', href: '/explore' },
-    { name: 'About', href: '/about' },
-    { name: 'Contact', href: '/contact' },
   ];
 
   const handleNavigation = (path) => {
