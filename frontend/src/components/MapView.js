@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import { Icon, latLngBounds } from 'leaflet';
 import { apiService } from '../services/api';
-import { formatCurrency } from '../utils/helpers';
+import { formatCurrency, calculateDistance } from '../utils/helpers';
 import LoadingSpinner from './LoadingSpinner';
 import ErrorMessage from './ErrorMessage';
 
@@ -59,6 +59,19 @@ const MapView = ({
       setSelectedPlaces([]);
     }
   }, [selectedPackage]);
+
+  const MAX_DISTANCE_KM = 50;
+
+  // When a hotel is selected in custom mode, only show places within 50km
+  const visiblePlaces = (!readOnly && selectedHotel)
+    ? touristPlaces.filter((place) => {
+        const dist = calculateDistance(
+          Number(selectedHotel.lat), Number(selectedHotel.lng),
+          Number(place.lat), Number(place.lng)
+        );
+        return dist <= MAX_DISTANCE_KM;
+      })
+    : touristPlaces;
 
   const hotelPrice = selectedHotel ? Number(selectedHotel.price_per_night) || 0 : 0;
   const placesPrice = selectedPlaces.reduce(
@@ -308,8 +321,8 @@ const MapView = ({
           );
         })}
 
-        {/* Tourist Place Markers */}
-        {touristPlaces.map((place) => {
+        {/* Tourist Place Markers (filtered to 50km from selected hotel in custom mode) */}
+        {visiblePlaces.map((place) => {
           const isSelectedPlace = selectedPlaces.some((p) => p.id === place.id);
           return (
             <Marker
@@ -465,11 +478,47 @@ const MapView = ({
             </button>
           )}
 
+          {/* Route / Travel Plan info (shown BEFORE book button) */}
+          {!readOnly && selectedHotel && selectedPlaces.length > 0 && (() => {
+            const route = [selectedHotel, ...selectedPlaces];
+            let totalDist = 0;
+            const legs = [];
+            for (let i = 0; i < route.length - 1; i++) {
+              const d = calculateDistance(
+                Number(route[i].lat), Number(route[i].lng),
+                Number(route[i + 1].lat), Number(route[i + 1].lng)
+              );
+              totalDist += d;
+              legs.push({
+                from: route[i].name,
+                to: route[i + 1].name,
+                km: d.toFixed(1),
+              });
+            }
+            const estHours = Math.ceil(totalDist / 40);
+            return (
+              <div className="mt-3 p-3 bg-gray-50 rounded-lg text-xs">
+                <p className="font-semibold text-gray-800 mb-1">Travel Plan</p>
+                <ol className="list-decimal list-inside space-y-0.5 text-gray-700">
+                  {legs.map((leg, i) => (
+                    <li key={i}>
+                      {leg.from} → {leg.to} <span className="text-gray-500">({leg.km} km)</span>
+                    </li>
+                  ))}
+                </ol>
+                <div className="mt-2 flex justify-between text-gray-800 font-medium">
+                  <span>Total: {totalDist.toFixed(1)} km</span>
+                  <span>~{estHours} jam</span>
+                </div>
+              </div>
+            );
+          })()}
+
           {!readOnly && onBookCustomTrip && (
             <button
               onClick={handleBookTrip}
               disabled={!selectedHotel || selectedPlaces.length === 0}
-              className="w-full mt-2 btn-primary text-sm py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full mt-3 btn-primary text-sm py-2 disabled:opacity-50 disabled:cursor-not-allowed"
               title={
                 !selectedHotel
                   ? 'Pick a hotel marker first'
