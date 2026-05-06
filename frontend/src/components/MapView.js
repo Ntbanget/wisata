@@ -40,6 +40,9 @@ const MapView = ({
   const [error, setError] = useState(null);
   const [selectedHotel, setSelectedHotel] = useState(null);
   const [selectedPlaces, setSelectedPlaces] = useState([]);
+  const [routeGeometry, setRouteGeometry] = useState(null);
+  const [routeStats, setRouteStats] = useState(null); // { distance_km, duration_min }
+  const [routeLoading, setRouteLoading] = useState(false);
 
   // Center of Central Java
   const defaultCenter = [-7.0, 110.0];
@@ -59,6 +62,64 @@ const MapView = ({
       setSelectedPlaces([]);
     }
   }, [selectedPackage]);
+
+  // Fetch road-following route from OSRM whenever the selection changes.
+  // Falls back to straight lines if OSRM is unreachable or returns no route.
+  useEffect(() => {
+    if (!selectedHotel || selectedPlaces.length === 0) {
+      setRouteGeometry(null);
+      setRouteStats(null);
+      return;
+    }
+
+    const points = [
+      [Number(selectedHotel.lat), Number(selectedHotel.lng)],
+      ...selectedPlaces.map((p) => [Number(p.lat), Number(p.lng)]),
+    ].filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng));
+
+    if (points.length < 2) {
+      setRouteGeometry(null);
+      setRouteStats(null);
+      return;
+    }
+
+    const coordsParam = points.map(([lat, lng]) => `${lng},${lat}`).join(';');
+    const url = `https://router.project-osrm.org/route/v1/driving/${coordsParam}?overview=full&geometries=geojson`;
+
+    let cancelled = false;
+    setRouteLoading(true);
+
+    fetch(url)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`OSRM ${r.status}`))))
+      .then((data) => {
+        if (cancelled) return;
+        const route = data && data.routes && data.routes[0];
+        if (!route || !route.geometry || !route.geometry.coordinates) {
+          setRouteGeometry(null);
+          setRouteStats(null);
+          return;
+        }
+        // OSRM returns [lng, lat]; Leaflet expects [lat, lng]
+        const latlngs = route.geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+        setRouteGeometry(latlngs);
+        setRouteStats({
+          distance_km: route.distance / 1000,
+          duration_min: route.duration / 60,
+        });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setRouteGeometry(null);
+        setRouteStats(null);
+      })
+      .finally(() => {
+        if (!cancelled) setRouteLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedHotel, selectedPlaces]);
 
   const MAX_DISTANCE_KM = 50;
 
@@ -370,14 +431,23 @@ const MapView = ({
           );
         })}
 
-        {/* Route Line */}
-        {selectedHotel && selectedPlaces.length > 0 && (
+        {/* Route Line — uses OSRM road-following geometry if available,
+            otherwise falls back to a dashed straight line between markers. */}
+        {selectedHotel && selectedPlaces.length > 0 && routeGeometry && routeGeometry.length > 1 && (
+          <Polyline
+            positions={routeGeometry}
+            color="#dc2626"
+            weight={4}
+            opacity={0.85}
+          />
+        )}
+        {selectedHotel && selectedPlaces.length > 0 && !routeGeometry && (
           <Polyline
             positions={getRouteCoordinates()}
             color="red"
-            weight={3}
-            opacity={0.7}
-            dashArray="10, 5"
+            weight={2}
+            opacity={0.5}
+            dashArray="6, 6"
           />
         )}
       </MapContainer>
@@ -481,35 +551,54 @@ const MapView = ({
           {/* Route / Travel Plan info (shown BEFORE book button) */}
           {!readOnly && selectedHotel && selectedPlaces.length > 0 && (() => {
             const route = [selectedHotel, ...selectedPlaces];
-            let totalDist = 0;
+            let haversineTotal = 0;
             const legs = [];
             for (let i = 0; i < route.length - 1; i++) {
               const d = calculateDistance(
                 Number(route[i].lat), Number(route[i].lng),
                 Number(route[i + 1].lat), Number(route[i + 1].lng)
               );
-              totalDist += d;
+              haversineTotal += d;
               legs.push({
                 from: route[i].name,
                 to: route[i + 1].name,
                 km: d.toFixed(1),
               });
             }
-            const estHours = Math.ceil(totalDist / 40);
+            // Prefer real driving distance/time from OSRM when available.
+            const realDistance = routeStats ? routeStats.distance_km : null;
+            const realDurationMin = routeStats ? routeStats.duration_min : null;
+            const fallbackHours = Math.max(1, Math.ceil(haversineTotal / 40));
             return (
               <div className="mt-3 p-3 bg-gray-50 rounded-lg text-xs">
-                <p className="font-semibold text-gray-800 mb-1">Travel Plan</p>
+                <p className="font-semibold text-gray-800 mb-1">
+                  Travel Plan {routeLoading && <span className="text-gray-500 font-normal">(calculating route...)</span>}
+                </p>
                 <ol className="list-decimal list-inside space-y-0.5 text-gray-700">
                   {legs.map((leg, i) => (
                     <li key={i}>
-                      {leg.from} → {leg.to} <span className="text-gray-500">({leg.km} km)</span>
+                      {leg.from} → {leg.to} <span className="text-gray-500">({leg.km} km lurus)</span>
                     </li>
                   ))}
                 </ol>
                 <div className="mt-2 flex justify-between text-gray-800 font-medium">
-                  <span>Total: {totalDist.toFixed(1)} km</span>
-                  <span>~{estHours} jam</span>
+                  {realDistance != null ? (
+                    <>
+                      <span>Driving: {realDistance.toFixed(1)} km</span>
+                      <span>~{Math.round(realDurationMin)} menit</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Total: {haversineTotal.toFixed(1)} km</span>
+                      <span>~{fallbackHours} jam</span>
+                    </>
+                  )}
                 </div>
+                {realDistance == null && !routeLoading && (
+                  <p className="mt-1 text-[10px] text-gray-500">
+                    Routing service unavailable — showing straight-line estimate.
+                  </p>
+                )}
               </div>
             );
           })()}
