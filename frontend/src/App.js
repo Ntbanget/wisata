@@ -1,0 +1,44 @@
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { ThemeProvider } from './context/ThemeContext';
+import { BookingProvider } from './context/BookingContext';
+import Navbar from './components/Navbar';
+import Footer from './components/Footer';
+import LandingPage from './pages/LandingPage';
+import PackagePage from './pages/PackagePage';
+import DetailPage from './pages/DetailPage';
+import CustomPage from './pages/CustomPage';
+import MapPage from './pages/MapPage';
+import ExploreMap from './pages/ExploreMap';
+import CheckoutPage from './pages/CheckoutPage';
+import SuccessPage from './pages/SuccessPage';
+import './index.css';
+
+function App() {
+  return (
+    <ThemeProvider>
+      <BookingProvider>
+        <Router>
+          <div className="min-h-screen flex flex-col bg-gray-50">
+            <Navbar />
+            <main className="flex-grow">
+              <Routes>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/packages" element={<PackagePage />} />
+                <Route path="/detail/:packageId" element={<DetailPage />} />
+                <Route path="/custom/:packageId" element={<CustomPage />} />
+                <Route path="/map/:packageId" element={<MapPage />} />
+                <Route path="/explore" element={<ExploreMap />} />
+                <Route path="/checkout/:packageId" element={<CheckoutPage />} />
+                <Route path="/success/:bookingId" element={<SuccessPage />} />
+              </Routes>
+            </main>
+            <Footer />
+          </div>
+        </Router>
+      </BookingProvider>
+    </ThemeProvider>
+  );
+}
+
+export default App;

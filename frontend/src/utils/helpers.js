@@ -1,0 +1,284 @@
+// Utility functions for the tourism travel planner
+
+// Format currency to Indonesian Rupiah
+export const formatCurrency = (amount) => {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+};
+
+// Format date to readable format
+export const formatDate = (dateString) => {
+  const date = new Date(dateString);
+  return new Intl.DateTimeFormat('id-ID', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+};
+
+// Format date only (without time)
+export const formatDateOnly = (dateString) => {
+  const date = new Date(dateString);
+  return new Intl.DateTimeFormat('id-ID', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  }).format(date);
+};
+
+// Calculate distance between two coordinates (Haversine formula)
+export const calculateDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371; // Earth's radius in kilometers
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c; // Distance in kilometers
+};
+
+// Generate Google Maps navigation URL
+export const generateMapsUrl = (hotel, destinations) => {
+  if (!hotel || !destinations || destinations.length === 0) {
+    return '#';
+  }
+
+  const baseUrl = 'https://www.google.com/maps/dir/?api=1';
+  const origin = `${hotel.lat},${hotel.lng}`;
+  const destination = destinations[destinations.length - 1].lat + ',' + destinations[destinations.length - 1].lng;
+  
+  let waypoints = '';
+  if (destinations.length > 1) {
+    waypoints = destinations.slice(0, -1)
+      .map(dest => `${dest.lat},${dest.lng}`)
+      .join('|');
+  }
+
+  const params = new URLSearchParams({
+    origin,
+    destination
+  });
+
+  if (waypoints) {
+    params.append('waypoints', waypoints);
+  }
+
+  return `${baseUrl}&${params.toString()}`;
+};
+
+// Generate static map URL for preview
+export const generateStaticMapUrl = (hotel, destinations, width = 600, height = 400) => {
+  if (!hotel || !destinations || destinations.length === 0) {
+    return '';
+  }
+
+  const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
+  if (!apiKey) return '';
+
+  const markers = [];
+  
+  // Add hotel marker (blue)
+  markers.push(`color:blue|${hotel.lat},${hotel.lng}`);
+  
+  // Add destination markers (red)
+  destinations.forEach(dest => {
+    markers.push(`color:red|${dest.lat},${dest.lng}`);
+  });
+
+  const params = new URLSearchParams({
+    key: apiKey,
+    size: `${width}x${height}`,
+    maptype: 'roadmap',
+    markers: markers.join('|')
+  });
+
+  return `https://maps.googleapis.com/maps/api/staticmap?${params.toString()}`;
+};
+
+// Validate email format
+export const isValidEmail = (email) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+// Validate phone number (Indonesian format)
+export const isValidPhone = (phone) => {
+  const phoneRegex = /^(\+62|62|0)8[1-9][0-9]{6,11}$/;
+  return phoneRegex.test(phone.replace(/[-\s]/g, ''));
+};
+
+// Debounce function for search inputs
+export const debounce = (func, wait) => {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+};
+
+// Generate unique ID
+export const generateId = () => {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2);
+};
+
+// Get hotel category label
+export const getHotelCategoryLabel = (category) => {
+  const labels = {
+    low: 'Budget',
+    medium: 'Mid-range',
+    high: 'Luxury'
+  };
+  return labels[category] || category;
+};
+
+// Get hotel category color
+export const getHotelCategoryColor = (category) => {
+  const colors = {
+    low: 'bg-green-100 text-green-800',
+    medium: 'bg-yellow-100 text-yellow-800',
+    high: 'bg-purple-100 text-purple-800'
+  };
+  return colors[category] || 'bg-gray-100 text-gray-800';
+};
+
+// Get tourist place category icon
+export const getPlaceCategoryIcon = (category) => {
+  const icons = {
+    Historical: '🏛️',
+    Nature: '🌿',
+    Cultural: '🎭',
+    Beach: '🏖️',
+    Religious: '⛪',
+    Adventure: '🏔️',
+    Museum: '🏛️',
+    Park: '🌳',
+    Monument: '🗿',
+    Recreation: '🎢',
+    Island: '🏝️',
+    Market: '🛍️'
+  };
+  return icons[category] || '📍';
+};
+
+// Calculate estimated travel time (simple estimation)
+export const estimateTravelTime = (distance) => {
+  // Average speed of 40 km/h for city/tourist travel
+  const avgSpeed = 40;
+  const hours = distance / avgSpeed;
+  
+  if (hours < 1) {
+    return `${Math.round(hours * 60)} minutes`;
+  } else if (hours < 24) {
+    return `${Math.round(hours * 10) / 10} hours`;
+  } else {
+    return `${Math.round(hours / 24 * 10) / 10} days`;
+  }
+};
+
+// Generate itinerary text
+export const generateItinerary = (hotel, destinations) => {
+  const itinerary = [];
+  
+  // Day 1 - Check-in and first destination
+  itinerary.push({
+    day: 1,
+    morning: `Check-in at ${hotel.name}`,
+    afternoon: destinations[0] ? `Visit ${destinations[0].name}` : 'Free time',
+    evening: 'Dinner and rest'
+  });
+  
+  // Additional days for remaining destinations
+  for (let i = 1; i < destinations.length; i++) {
+    const dayNum = Math.floor(i / 2) + 2;
+    const timeOfDay = i % 2 === 0 ? 'afternoon' : 'morning';
+    
+    if (!itinerary[dayNum - 1]) {
+      itinerary[dayNum - 1] = { day: dayNum };
+    }
+    
+    itinerary[dayNum - 1][timeOfDay] = `Visit ${destinations[i].name}`;
+  }
+  
+  return itinerary;
+};
+
+// Copy text to clipboard
+export const copyToClipboard = async (text) => {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch (err) {
+    console.error('Failed to copy text: ', err);
+    return false;
+  }
+};
+
+// Scroll to element
+export const scrollToElement = (elementId, offset = 0) => {
+  const element = document.getElementById(elementId);
+  if (element) {
+    const elementPosition = element.getBoundingClientRect().top;
+    const offsetPosition = elementPosition + window.pageYOffset - offset;
+    
+    window.scrollTo({
+      top: offsetPosition,
+      behavior: 'smooth'
+    });
+  }
+};
+
+// Get price range label
+export const getPriceRangeLabel = (minPrice, maxPrice) => {
+  if (minPrice === maxPrice) {
+    return formatCurrency(minPrice);
+  }
+  return `${formatCurrency(minPrice)} - ${formatCurrency(maxPrice)}`;
+};
+
+// Validate budget
+export const validateBudget = (budget) => {
+  const num = parseFloat(budget);
+  return !isNaN(num) && num >= 10000 && num <= 10000000;
+};
+
+// Get rating stars
+export const getRatingStars = (rating) => {
+  const stars = [];
+  const fullStars = Math.floor(rating);
+  const hasHalfStar = rating % 1 >= 0.5;
+  
+  for (let i = 0; i < fullStars; i++) {
+    stars.push('⭐');
+  }
+  
+  if (hasHalfStar) {
+    stars.push('✨');
+  }
+  
+  const emptyStars = 5 - Math.ceil(rating);
+  for (let i = 0; i < emptyStars; i++) {
+    stars.push('☆');
+  }
+  
+  return stars.join('');
+};
+
+// Calculate package score color
+export const getScoreColor = (score) => {
+  if (score >= 8) return 'text-green-600';
+  if (score >= 6) return 'text-yellow-600';
+  if (score >= 4) return 'text-orange-600';
+  return 'text-red-600';
+};

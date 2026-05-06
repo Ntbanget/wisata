@@ -1,0 +1,256 @@
+const PackageGenerator = require('../utils/packageGenerator');
+const validator = require('validator');
+
+class PackageController {
+  // Generate travel packages
+  static async generatePackages(req, res) {
+    try {
+      const { city_id, budget, packages_count = 3, max_places = 4 } = req.query;
+      
+      // Validate required parameters
+      if (!city_id || !budget) {
+        return res.status(400).json({
+          success: false,
+          error: 'city_id and budget are required'
+        });
+      }
+
+      // Validate city_id
+      if (!validator.isInt(city_id, { min: 1 })) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid city_id'
+        });
+      }
+
+      // Validate budget
+      const budgetNum = parseFloat(budget);
+      if (!validator.isFloat(budget, { min: 10000, max: 10000000 })) {
+        return res.status(400).json({
+          success: false,
+          error: 'Budget must be between 10,000 and 10,000,000'
+        });
+      }
+
+      // Validate optional parameters
+      const packagesCount = validator.isInt(packages_count, { min: 1, max: 10 }) 
+        ? parseInt(packages_count) 
+        : 3;
+      
+      const maxPlaces = validator.isInt(max_places, { min: 2, max: 6 }) 
+        ? parseInt(max_places) 
+        : 4;
+
+      // Generate packages
+      const packages = await PackageGenerator.generatePackages(
+        parseInt(city_id),
+        budgetNum,
+        {
+          packagesCount,
+          maxPlaces
+        }
+      );
+
+      // Get budget breakdown
+      const budgetBreakdown = PackageGenerator.getBudgetBreakdown(budgetNum);
+
+      res.json({
+        success: true,
+        data: {
+          packages,
+          budget_breakdown: budgetBreakdown,
+          search_criteria: {
+            city_id: parseInt(city_id),
+            budget: budgetNum,
+            packages_count: packagesCount,
+            max_places: maxPlaces
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error generating packages:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to generate packages',
+        message: error.message
+      });
+    }
+  }
+
+  // Calculate custom package price
+  static async calculateCustomPackage(req, res) {
+    try {
+      const { hotel_id, tourist_place_ids, nights = 1 } = req.body;
+      
+      // Validate required parameters
+      if (!hotel_id || !tourist_place_ids) {
+        return res.status(400).json({
+          success: false,
+          error: 'hotel_id and tourist_place_ids are required'
+        });
+      }
+
+      // Validate hotel_id
+      if (!validator.isInt(hotel_id, { min: 1 })) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid hotel_id'
+        });
+      }
+
+      // Validate tourist_place_ids
+      if (!Array.isArray(tourist_place_ids) || tourist_place_ids.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'tourist_place_ids must be a non-empty array'
+        });
+      }
+
+      // Validate each place ID
+      for (const placeId of tourist_place_ids) {
+        if (!validator.isInt(placeId, { min: 1 })) {
+          return res.status(400).json({
+            success: false,
+            error: `Invalid tourist_place_id: ${placeId}`
+          });
+        }
+      }
+
+      // Validate nights
+      const nightsNum = parseInt(nights);
+      if (!validator.isInt(nights, { min: 1, max: 30 })) {
+        return res.status(400).json({
+          success: false,
+          error: 'Nights must be between 1 and 30'
+        });
+      }
+
+      // Calculate custom package
+      const customPackage = await PackageGenerator.calculateCustomPackage(
+        parseInt(hotel_id),
+        tourist_place_ids.map(id => parseInt(id)),
+        nightsNum
+      );
+
+      res.json({
+        success: true,
+        data: customPackage
+      });
+    } catch (error) {
+      console.error('Error calculating custom package:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to calculate custom package',
+        message: error.message
+      });
+    }
+  }
+
+  // Validate package against budget
+  static async validatePackage(req, res) {
+    try {
+      const { hotel_id, tourist_place_ids, budget } = req.body;
+      
+      // Validate required parameters
+      if (!hotel_id || !tourist_place_ids || !budget) {
+        return res.status(400).json({
+          success: false,
+          error: 'hotel_id, tourist_place_ids, and budget are required'
+        });
+      }
+
+      // Validate hotel_id
+      if (!validator.isInt(hotel_id, { min: 1 })) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid hotel_id'
+        });
+      }
+
+      // Validate tourist_place_ids
+      if (!Array.isArray(tourist_place_ids) || tourist_place_ids.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'tourist_place_ids must be a non-empty array'
+        });
+      }
+
+      // Validate each place ID
+      for (const placeId of tourist_place_ids) {
+        if (!validator.isInt(placeId, { min: 1 })) {
+          return res.status(400).json({
+            success: false,
+            error: `Invalid tourist_place_id: ${placeId}`
+          });
+        }
+      }
+
+      // Validate budget
+      const budgetNum = parseFloat(budget);
+      if (!validator.isFloat(budget, { min: 10000, max: 10000000 })) {
+        return res.status(400).json({
+          success: false,
+          error: 'Budget must be between 10,000 and 10,000,000'
+        });
+      }
+
+      // Validate package
+      const validation = await PackageGenerator.validatePackage(
+        parseInt(hotel_id),
+        tourist_place_ids.map(id => parseInt(id)),
+        budgetNum
+      );
+
+      res.json({
+        success: true,
+        data: validation
+      });
+    } catch (error) {
+      console.error('Error validating package:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to validate package',
+        message: error.message
+      });
+    }
+  }
+
+  // Get budget breakdown
+  static async getBudgetBreakdown(req, res) {
+    try {
+      const { budget } = req.query;
+      
+      if (!budget) {
+        return res.status(400).json({
+          success: false,
+          error: 'Budget is required'
+        });
+      }
+
+      // Validate budget
+      const budgetNum = parseFloat(budget);
+      if (!validator.isFloat(budget, { min: 10000, max: 10000000 })) {
+        return res.status(400).json({
+          success: false,
+          error: 'Budget must be between 10,000 and 10,000,000'
+        });
+      }
+
+      const breakdown = PackageGenerator.getBudgetBreakdown(budgetNum);
+
+      res.json({
+        success: true,
+        data: breakdown
+      });
+    } catch (error) {
+      console.error('Error getting budget breakdown:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get budget breakdown',
+        message: error.message
+      });
+    }
+  }
+}
+
+module.exports = PackageController;
