@@ -48,10 +48,14 @@ const ExploreMap = () => {
   const loadCities = async () => {
     try {
       const response = await apiService.getCities();
-      setCities(response.data);
+      setCities(response.data || []);
       setIsLoading(false);
-    } catch (error) {
-      setError('Failed to load cities');
+    } catch (err) {
+      const detail =
+        err?.message ||
+        err?.error ||
+        'check that the backend is running on port 5000';
+      setError(`Failed to load cities (${detail})`);
       setIsLoading(false);
     }
   };

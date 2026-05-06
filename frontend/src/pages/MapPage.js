@@ -135,9 +135,10 @@ const MapPage = () => {
           {/* Map */}
           <div className="lg:col-span-3">
             <div className="card p-0 overflow-hidden">
-              <MapView 
+              <MapView
                 selectedPackage={packageData}
                 height="600px"
+                readOnly={true}
               />
             </div>
           </div>

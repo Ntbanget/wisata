@@ -169,8 +169,9 @@ const DetailPage = () => {
               <button
                 onClick={handleCustomize}
                 className="btn-outline"
+                title="Build a custom trip starting from this package"
               >
-                Customize Package
+                Build Custom Trip
               </button>
               <button
                 onClick={handleCheckout}
@@ -263,9 +264,10 @@ const DetailPage = () => {
                   <button
                     onClick={handleCustomize}
                     className="flex items-center justify-center space-x-2 p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                    title="Build a custom trip starting from this package"
                   >
                     <Calendar className="w-5 h-5 text-primary-600" />
-                    <span>Customize</span>
+                    <span>Build Custom Trip</span>
                   </button>
                 </div>
               </div>

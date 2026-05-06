@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
-import { Icon } from 'leaflet';
+import React, { useState, useEffect, useRef } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
+import { Icon, latLngBounds } from 'leaflet';
 import { apiService } from '../services/api';
 import { formatCurrency } from '../utils/helpers';
 import LoadingSpinner from './LoadingSpinner';
@@ -14,11 +14,25 @@ Icon.Default.mergeOptions({
   shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
 });
 
+// Helper component that exposes the leaflet map instance via a ref so the
+// parent can call fitBounds() programmatically (e.g. from a 'Show Route' button).
+function MapRefSetter({ mapRef }) {
+  const map = useMap();
+  useEffect(() => {
+    if (mapRef) mapRef.current = map;
+    return () => {
+      if (mapRef && mapRef.current === map) mapRef.current = null;
+    };
+  }, [map, mapRef]);
+  return null;
+}
+
 const MapView = ({
   selectedPackage = null,
   cityId = null,
   height = '500px',
   onBookCustomTrip = null,
+  readOnly = false,
 }) => {
   const [hotels, setHotels] = useState([]);
   const [touristPlaces, setTouristPlaces] = useState([]);
@@ -70,6 +84,19 @@ const MapView = ({
         total_price: combinedTotal,
       });
     }
+  };
+
+  const mapRef = useRef(null);
+
+  const handleShowRoute = () => {
+    if (!mapRef.current || !selectedHotel || selectedPlaces.length === 0) return;
+    const points = [
+      [Number(selectedHotel.lat), Number(selectedHotel.lng)],
+      ...selectedPlaces.map((p) => [Number(p.lat), Number(p.lng)]),
+    ].filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng));
+    if (points.length === 0) return;
+    const bounds = latLngBounds(points);
+    mapRef.current.fitBounds(bounds, { padding: [60, 60], maxZoom: 14 });
   };
 
   const loadData = async () => {
@@ -227,6 +254,8 @@ const MapView = ({
         bounds={getMapBounds()}
         boundsOptions={{ padding: [50, 50] }}
       >
+        <MapRefSetter mapRef={mapRef} />
+
         {/* OpenStreetMap Tile Layer */}
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -252,7 +281,13 @@ const MapView = ({
                   <p className="text-xs text-gray-600">
                     Rating: {Number(hotel.rating).toFixed(1)} ⭐
                   </p>
-                  {isSelectedHotel ? (
+                  {readOnly ? (
+                    isSelectedHotel && (
+                      <p className="mt-2 text-xs font-medium text-blue-700">
+                        Part of your package
+                      </p>
+                    )
+                  ) : isSelectedHotel ? (
                     <button
                       onClick={() => setSelectedHotel(null)}
                       className="mt-2 w-full text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
@@ -289,7 +324,13 @@ const MapView = ({
                   <p className="text-sm font-medium">
                     {formatCurrency(place.ticket_price)} entry
                   </p>
-                  {isSelectedPlace ? (
+                  {readOnly ? (
+                    isSelectedPlace && (
+                      <p className="mt-2 text-xs font-medium text-green-700">
+                        Part of your package
+                      </p>
+                    )
+                  ) : isSelectedPlace ? (
                     <button
                       onClick={() =>
                         setSelectedPlaces((prev) => prev.filter((p) => p.id !== place.id))
@@ -332,15 +373,25 @@ const MapView = ({
       {(selectedHotel || selectedPlaces.length > 0) && (
         <div className="absolute top-4 right-4 z-[1000] bg-white rounded-lg shadow-medium border border-gray-200 p-4 w-72 max-h-[calc(100%-2rem)] overflow-y-auto">
           <div className="flex items-center justify-between mb-2">
-            <h4 className="font-semibold text-gray-900">Your Trip</h4>
-            <button
-              onClick={handleClearSelection}
-              className="text-xs text-red-600 hover:text-red-700 font-medium"
-              title="Clear all selections"
-            >
-              Clear
-            </button>
+            <h4 className="font-semibold text-gray-900">
+              {readOnly ? 'Package Itinerary' : 'Your Trip'}
+            </h4>
+            {!readOnly && (
+              <button
+                onClick={handleClearSelection}
+                className="text-xs text-red-600 hover:text-red-700 font-medium"
+                title="Clear all selections"
+              >
+                Clear
+              </button>
+            )}
           </div>
+
+          {readOnly && (
+            <p className="text-xs text-gray-500 mb-2">
+              This is a fixed package — to build your own, go to Explore Map.
+            </p>
+          )}
 
           {selectedHotel && (
             <div className="mb-3 pb-3 border-b border-gray-100">
@@ -352,13 +403,15 @@ const MapView = ({
                     {formatCurrency(selectedHotel.price_per_night)} / night
                   </p>
                 </div>
-                <button
-                  onClick={() => setSelectedHotel(null)}
-                  className="text-gray-400 hover:text-red-600 text-lg leading-none"
-                  title="Remove hotel"
-                >
-                  ×
-                </button>
+                {!readOnly && (
+                  <button
+                    onClick={() => setSelectedHotel(null)}
+                    className="text-gray-400 hover:text-red-600 text-lg leading-none"
+                    title="Remove hotel"
+                  >
+                    ×
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -380,13 +433,15 @@ const MapView = ({
                         {formatCurrency(place.ticket_price)}
                       </span>
                     </div>
-                    <button
-                      onClick={() => handleRemovePlace(place.id)}
-                      className="text-gray-400 hover:text-red-600 text-lg leading-none flex-shrink-0"
-                      title="Remove this destination"
-                    >
-                      ×
-                    </button>
+                    {!readOnly && (
+                      <button
+                        onClick={() => handleRemovePlace(place.id)}
+                        className="text-gray-400 hover:text-red-600 text-lg leading-none flex-shrink-0"
+                        title="Remove this destination"
+                      >
+                        ×
+                      </button>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -400,11 +455,21 @@ const MapView = ({
             </div>
           </div>
 
-          {onBookCustomTrip && (
+          {!readOnly && selectedHotel && selectedPlaces.length > 0 && (
+            <button
+              onClick={handleShowRoute}
+              className="w-full mt-3 text-sm py-2 rounded-lg border border-primary-600 text-primary-700 hover:bg-primary-50 font-medium transition-colors"
+              title="Zoom map to fit your route"
+            >
+              Show Route on Map
+            </button>
+          )}
+
+          {!readOnly && onBookCustomTrip && (
             <button
               onClick={handleBookTrip}
               disabled={!selectedHotel || selectedPlaces.length === 0}
-              className="w-full mt-3 btn-primary text-sm py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full mt-2 btn-primary text-sm py-2 disabled:opacity-50 disabled:cursor-not-allowed"
               title={
                 !selectedHotel
                   ? 'Pick a hotel marker first'
@@ -413,7 +478,7 @@ const MapView = ({
                     : 'Book this custom trip'
               }
             >
-              Book This Trip
+              OK – Book This Trip
             </button>
           )}
         </div>
