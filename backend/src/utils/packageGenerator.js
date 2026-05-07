@@ -375,6 +375,9 @@ class PackageGenerator {
         remaining_budget: budget - (hotelTotal + fittedTotal),
         total_drive_min: totalDriveMin,
         total_visit_min: totalVisitMin,
+        // Per-malam buckets with timeline so DetailPage / MapPage / CheckoutPage
+        // render the same Malam 1..N layout instead of the heuristic fallback.
+        itinerary,
         score: this.calculatePackageScore(hotel, pick.places, budget),
       });
     }

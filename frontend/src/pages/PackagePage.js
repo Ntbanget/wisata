@@ -76,15 +76,18 @@ const PackagePage = () => {
 
   // Packages are FIXED. To customize, users go to Explore Map instead.
   // Pre-filter Explore Map by the city that was searched so users don't
-  // have to pick the city again.
-  const handleGoToExplore = (cityIdOverride = null) => {
+  // have to pick the city again. Also pass the nights so the Malam selector
+  // is pre-set to match the user's search.
+  const handleGoToExplore = (cityIdOverride = null, nightsOverride = null) => {
     const cityId = cityIdOverride
       || (searchCriteria && searchCriteria.city_id);
-    if (cityId) {
-      navigate(`/explore?city=${cityId}`);
-    } else {
-      navigate('/explore');
-    }
+    const nights = nightsOverride
+      || (searchCriteria && searchCriteria.nights);
+    const params = new URLSearchParams();
+    if (cityId) params.set('city', String(cityId));
+    if (nights) params.set('nights', String(nights));
+    const qs = params.toString();
+    navigate(qs ? `/explore?${qs}` : '/explore');
   };
 
   const handleShare = async (packageData) => {
@@ -313,26 +316,43 @@ const PackagePage = () => {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => handlePackageSelect(packageData)}
-                      className="flex-1 btn-primary text-sm"
-                    >
-                      View Details
-                    </button>
-                    <button
-                      onClick={() => handleGoToExplore(packageData.hotel && packageData.hotel.city_id)}
-                      className="flex-1 btn-outline text-sm"
-                      title="Build your own custom trip on Explore Map"
-                    >
-                      Custom (Jelajahi Peta)
-                    </button>
-                    <button
-                      onClick={() => handleShare(packageData)}
-                      className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200"
-                    >
-                      <Share2 className="w-4 h-4 text-gray-600" />
-                    </button>
+                  <div className="space-y-2">
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handlePackageSelect(packageData)}
+                        className="flex-1 btn-primary text-sm"
+                      >
+                        View Details
+                      </button>
+                      <button
+                        onClick={() => handleShare(packageData)}
+                        className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                      >
+                        <Share2 className="w-4 h-4 text-gray-600" />
+                      </button>
+                    </div>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleGoToExplore(
+                          packageData.hotel && packageData.hotel.city_id,
+                          packageData.nights,
+                        )}
+                        className="flex-1 btn-outline text-sm"
+                        title="Lihat peta kota & rute paket di Explore Map"
+                      >
+                        Lihat Peta
+                      </button>
+                      <button
+                        onClick={() => handleGoToExplore(
+                          packageData.hotel && packageData.hotel.city_id,
+                          packageData.nights,
+                        )}
+                        className="flex-1 btn-outline text-sm"
+                        title="Build your own custom trip on Explore Map"
+                      >
+                        Custom (Jelajahi Peta)
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

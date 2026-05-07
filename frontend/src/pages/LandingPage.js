@@ -121,7 +121,7 @@ const LandingPage = () => {
     Salatiga:    'https://upload.wikimedia.org/wikipedia/commons/e/e2/Rawa_Pening_Central_Java.jpg',
     Purwokerto:  'https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Gunung_Slamet_dan_Pegunungan_Serayu_Selatan_dilihat_dari_Teluk_Penyu.jpg/960px-Gunung_Slamet_dan_Pegunungan_Serayu_Selatan_dilihat_dari_Teluk_Penyu.jpg',
     Pekalongan:  'https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/Pekalongan_light_up_at_night.jpg/960px-Pekalongan_light_up_at_night.jpg',
-    Pemalang:    'https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/Cabbage_farm_in_Batursari_village.jpg/960px-Cabbage_farm_in_Batursari_village.jpg',
+    Pemalang:    'https://upload.wikimedia.org/wikipedia/commons/thumb/9/96/Pantai_Widuri_Pemalang.jpg/960px-Pantai_Widuri_Pemalang.jpg',
     Kendal:      'https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/Curug_Sewu.jpg/960px-Curug_Sewu.jpg',
     Yogyakarta:  'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/Jogja_-_Tugu_Monument_%282025%29_-_img_06.jpg/960px-Jogja_-_Tugu_Monument_%282025%29_-_img_06.jpg',
   };
@@ -134,12 +134,32 @@ const LandingPage = () => {
     Salatiga:    'Rawa Pening',
     Purwokerto:  'Lokawisata Baturraden',
     Pekalongan:  'Kota Batik',
-    Pemalang:    'Pemalang Regency',
+    Pemalang:    'Pantai Widuri',
     Kendal:      'Curug Sewu',
     Yogyakarta:  'Tugu Yogyakarta',
   };
 
-  const citiesToShow = cities.slice(0, 6);
+  // Curated list of "popular" cities to feature on the home page. We don't
+  // just slice the alphabetical city list because it would surface less iconic
+  // destinations (e.g. Pekalongan/Purwokerto) above must-see spots like
+  // Semarang and Yogyakarta. The names below match the values in the cities
+  // table; missing ones gracefully fall through to whatever the API returns.
+  const POPULAR_CITY_NAMES = [
+    'Semarang',
+    'Yogyakarta',
+    'Magelang',
+    'Surakarta (Solo)',
+    'Wonosobo',
+    'Jepara',
+  ];
+  const featuredCities = POPULAR_CITY_NAMES
+    .map((n) => cities.find((c) => c.name === n))
+    .filter(Boolean);
+  // Fill the row with whatever extra cities we have if the curated set
+  // is short (e.g. fresh DB without all entries seeded).
+  const featuredIds = new Set(featuredCities.map((c) => c.id));
+  const filler = cities.filter((c) => !featuredIds.has(c.id));
+  const citiesToShow = [...featuredCities, ...filler].slice(0, 6);
 
   return (
     <div className="min-h-screen">
@@ -285,8 +305,13 @@ const LandingPage = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {citiesToShow.map((city) => {
-              const landmarkImg = CITY_LANDMARK_IMAGES[city.name];
-              const landmarkLabel = CITY_LANDMARK_LABEL[city.name];
+              // Allow the key to match either the full DB name or the first
+              // word, so e.g. "Surakarta (Solo)" still maps to "Surakarta".
+              const lookupKey = CITY_LANDMARK_IMAGES[city.name]
+                ? city.name
+                : (city.name || '').split(' ')[0];
+              const landmarkImg = CITY_LANDMARK_IMAGES[lookupKey];
+              const landmarkLabel = CITY_LANDMARK_LABEL[lookupKey];
               return (
               <div key={city.id} className="card-hover cursor-pointer group overflow-hidden">
                 <div className="relative h-48 rounded-t-xl overflow-hidden bg-gradient-to-br from-primary-400 to-secondary-400">

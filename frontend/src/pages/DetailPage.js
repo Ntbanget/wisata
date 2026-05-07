@@ -77,15 +77,19 @@ const DetailPage = () => {
   const handleGoToExplore = () => {
     const cityId =
       (packageData && packageData.hotel && packageData.hotel.city_id) || null;
-    if (cityId) {
-      navigate(`/explore?city=${cityId}`);
-    } else {
-      navigate('/explore');
-    }
+    const nights = (packageData && packageData.nights) || null;
+    const params = new URLSearchParams();
+    if (cityId) params.set('city', String(cityId));
+    if (nights) params.set('nights', String(nights));
+    const qs = params.toString();
+    navigate(qs ? `/explore?${qs}` : '/explore');
   };
 
+  // "View Map" should auto-filter Explore Map by this package's city — same
+  // behaviour the user wants for Custom — so they immediately see the city's
+  // hotels + destinations on the map without re-picking the city.
   const handleViewMap = () => {
-    navigate(`/map/${packageId}`);
+    handleGoToExplore();
   };
 
   const handleCheckout = () => {
