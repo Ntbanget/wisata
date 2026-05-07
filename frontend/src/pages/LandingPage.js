@@ -109,6 +109,36 @@ const LandingPage = () => {
     }
   ];
 
+  // Landmark photos per city (Wikimedia Commons thumbnail URLs verified
+  // against the MediaWiki API). Falls back to a primary gradient background
+  // when a city is missing here or the image fails to load.
+  const CITY_LANDMARK_IMAGES = {
+    Semarang:    'https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/Lawang_Sewu_Semarang_Indonesia_1.jpg/960px-Lawang_Sewu_Semarang_Indonesia_1.jpg',
+    Surakarta:   'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Keraton_Kasunanan_Surakarta_Hadiningrat.jpg/960px-Keraton_Kasunanan_Surakarta_Hadiningrat.jpg',
+    Magelang:    'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Borobudur-Nothwest-view.jpg/960px-Borobudur-Nothwest-view.jpg',
+    Wonosobo:    'https://upload.wikimedia.org/wikipedia/commons/b/b9/Telaga_Warna_Sulpher_lake_in_Dieng_Plateau_%28Indonesia_2009%29.jpg',
+    Jepara:      'https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Pantai_Bandengan_-_Jepara%2C_Indonesia_-_panoramio.jpg/960px-Pantai_Bandengan_-_Jepara%2C_Indonesia_-_panoramio.jpg',
+    Salatiga:    'https://upload.wikimedia.org/wikipedia/commons/e/e2/Rawa_Pening_Central_Java.jpg',
+    Purwokerto:  'https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Gunung_Slamet_dan_Pegunungan_Serayu_Selatan_dilihat_dari_Teluk_Penyu.jpg/960px-Gunung_Slamet_dan_Pegunungan_Serayu_Selatan_dilihat_dari_Teluk_Penyu.jpg',
+    Pekalongan:  'https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/Pekalongan_light_up_at_night.jpg/960px-Pekalongan_light_up_at_night.jpg',
+    Pemalang:    'https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/Cabbage_farm_in_Batursari_village.jpg/960px-Cabbage_farm_in_Batursari_village.jpg',
+    Kendal:      'https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/Curug_Sewu.jpg/960px-Curug_Sewu.jpg',
+    Yogyakarta:  'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/Jogja_-_Tugu_Monument_%282025%29_-_img_06.jpg/960px-Jogja_-_Tugu_Monument_%282025%29_-_img_06.jpg',
+  };
+  const CITY_LANDMARK_LABEL = {
+    Semarang:    'Lawang Sewu',
+    Surakarta:   'Keraton Surakarta',
+    Magelang:    'Candi Borobudur',
+    Wonosobo:    'Telaga Warna Dieng',
+    Jepara:      'Pantai Kartini & Karimunjawa',
+    Salatiga:    'Rawa Pening',
+    Purwokerto:  'Lokawisata Baturraden',
+    Pekalongan:  'Kota Batik',
+    Pemalang:    'Pemalang Regency',
+    Kendal:      'Curug Sewu',
+    Yogyakarta:  'Tugu Yogyakarta',
+  };
+
   const citiesToShow = cities.slice(0, 6);
 
   return (
@@ -254,10 +284,33 @@ const LandingPage = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {citiesToShow.map((city) => (
-              <div key={city.id} className="card-hover cursor-pointer group">
-                <div className="h-48 bg-gradient-to-br from-primary-400 to-secondary-400 rounded-t-xl flex items-center justify-center">
-                  <MapPin className="w-12 h-12 text-white group-hover:scale-110 transition-transform duration-200" />
+            {citiesToShow.map((city) => {
+              const landmarkImg = CITY_LANDMARK_IMAGES[city.name];
+              const landmarkLabel = CITY_LANDMARK_LABEL[city.name];
+              return (
+              <div key={city.id} className="card-hover cursor-pointer group overflow-hidden">
+                <div className="relative h-48 rounded-t-xl overflow-hidden bg-gradient-to-br from-primary-400 to-secondary-400">
+                  {landmarkImg ? (
+                    <>
+                      <img
+                        src={landmarkImg}
+                        alt={`${landmarkLabel || city.name} (${city.name})`}
+                        loading="lazy"
+                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/15 to-transparent" />
+                      {landmarkLabel && (
+                        <span className="absolute bottom-2 left-3 text-white/95 text-xs font-medium drop-shadow">
+                          {landmarkLabel}
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <MapPin className="w-12 h-12 text-white group-hover:scale-110 transition-transform duration-200" />
+                    </div>
+                  )}
                 </div>
                 <div className="p-6">
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">
@@ -282,7 +335,8 @@ const LandingPage = () => {
                   </button>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>

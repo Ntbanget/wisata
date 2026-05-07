@@ -71,9 +71,17 @@ const DetailPage = () => {
     }
   };
 
-  // Packages are FIXED — to customize, users go to Explore Map and build their own trip.
+  // Packages are FIXED — to customize, users go to Explore Map and build their
+  // own trip. Pre-filter Explore Map by the package's city so users keep their
+  // search context when switching to custom mode.
   const handleGoToExplore = () => {
-    navigate('/explore');
+    const cityId =
+      (packageData && packageData.hotel && packageData.hotel.city_id) || null;
+    if (cityId) {
+      navigate(`/explore?city=${cityId}`);
+    } else {
+      navigate('/explore');
+    }
   };
 
   const handleViewMap = () => {

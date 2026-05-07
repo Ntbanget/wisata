@@ -82,17 +82,17 @@ INSERT INTO hotels (name, city_id, price_per_night, rating, category, lat, lng, 
 ('Dieng Plateau Homestay',     4, 280000, 3.8, 'low',    -7.2090, 109.9135, 'https://example.com/dieng.jpg',    'Walk to Telaga Warna and Candi Arjuna'),
 ('Bukit Scooter Hotel Dieng',  4, 380000, 4.0, 'medium', -7.2095, 109.9085, 'https://example.com/scooter.jpg',  'Sunrise-view hotel in Dieng');
 
--- ===== Jepara (city_id=5, center: -6.5935, 110.6751) =====
+-- ===== Jepara (city_id=5, center: -6.5870, 110.6680) =====
 INSERT INTO hotels (name, city_id, price_per_night, rating, category, lat, lng, image_url, description) VALUES
 ('Hotel New Surya Jepara',   5, 420000, 3.8, 'medium', -6.5907, 110.6751, 'https://example.com/surya-jpr.jpg', 'Hotel in Jepara town near Pantai Kartini'),
 ('Hotel Grand Queen Jepara', 5, 550000, 4.0, 'medium', -6.5912, 110.6735, 'https://example.com/queen.jpg',     'Mid-range hotel near Jepara center'),
 ('Hotel Bahari Inn Jepara',  5, 320000, 3.5, 'low',    -6.5906, 110.6779, 'https://example.com/baharijpr.jpg', 'Budget hotel in Jepara town');
 
--- ===== Salatiga (city_id=6, center: -7.3305, 110.5083) =====
+-- ===== Salatiga (city_id=6, center: -7.3303, 110.4995) =====
 INSERT INTO hotels (name, city_id, price_per_night, rating, category, lat, lng, image_url, description) VALUES
-('Hotel Grand Wahid Salatiga',  6, 480000, 4.0, 'medium', -7.3263, 110.5023, 'https://example.com/wahid.jpg',  'Modern hotel near Salatiga town'),
-('Hotel Laras Asri Salatiga',   6, 520000, 4.1, 'high',   -7.3406, 110.4949, 'https://example.com/laras.jpg',  'Resort hotel with mountain view'),
-('Hotel Le Beringin Salatiga',  6, 320000, 3.6, 'low',    -7.3296, 110.5022, 'https://example.com/beringin.jpg','Heritage hotel in Salatiga');
+('Hotel Grand Wahid Salatiga',  6, 480000, 4.0, 'medium', -7.3258, 110.5044, 'https://example.com/wahid.jpg',  'Modern hotel near Salatiga town (OSM-verified)'),
+('Hotel Laras Asri Salatiga',   6, 520000, 4.1, 'high',   -7.3414, 110.5101, 'https://example.com/laras.jpg',  'Resort and Spa Laras Asri (OSM-verified)'),
+('Hotel Le Beringin Salatiga',  6, 320000, 3.6, 'low',    -7.3323, 110.5042, 'https://example.com/beringin.jpg','Heritage hotel in Salatiga (OSM-verified)');
 
 -- ===== Purwokerto (city_id=7, center: -7.4213, 109.2324) =====
 INSERT INTO hotels (name, city_id, price_per_night, rating, category, lat, lng, image_url, description) VALUES
@@ -187,26 +187,29 @@ INSERT INTO tourist_places (name, city_id, ticket_price, category, lat, lng, ima
 ('Batu Pandang Ratapan Angin',        4, 12000, 'Nature',     -7.2178, 109.9168, 'https://example.com/ratapan.jpg',     'Cliff viewpoint over Telaga Warna'),
 ('Alun-Alun Wonosobo',                4, 0,     'Cultural',   -7.3587, 109.9030, 'https://example.com/alunwsb.jpg',     'City square in Wonosobo center');
 
--- ===== Jepara =====
+-- ===== Jepara (all coords OSM-verified via Nominatim) =====
 INSERT INTO tourist_places (name, city_id, ticket_price, category, lat, lng, image_url, description) VALUES
-('Pantai Kartini Jepara',             5, 10000, 'Beach',      -6.5876, 110.6580, 'https://example.com/kartini.jpg',     'Popular beach with Kura-Kura Ocean Park'),
-('Pantai Tirta Samudra (Bandengan)',  5, 10000, 'Beach',      -6.5719, 110.6363, 'https://example.com/bandengan.jpg',   'White-sand beach with clear water'),
-('Museum R.A. Kartini',               5, 8000,  'Museum',     -6.5917, 110.6694, 'https://example.com/museumkrt.jpg',   'Memorial museum to R.A. Kartini'),
-('Pulau Panjang',                     5, 25000, 'Island',     -6.5798, 110.6457, 'https://example.com/pulau.jpg',       'Small island with snorkeling spots'),
-('Benteng VOC Jepara',                5, 5000,  'Historical', -6.5796, 110.6463, 'https://example.com/voc.jpg',         'Dutch-era fort overlooking Jepara port'),
-('Desa Wisata Karimunjawa Bay View',  5, 10000, 'Nature',     -6.5705, 110.6320, 'https://example.com/karimun.jpg',     'Coastal village viewpoint'),
-('Air Terjun Songgolangit',           5, 5000,  'Nature',     -6.6320, 110.7330, 'https://example.com/songgo.jpg',      'Waterfall in Bucu, Jepara');
+('Pantai Kartini Jepara',             5, 10000, 'Beach',      -6.5897, 110.6456, 'https://example.com/kartini.jpg',     'Popular beach with Kura-Kura Ocean Park'),
+('Pantai Tirta Samudra (Bandengan)',  5, 10000, 'Beach',      -6.5542, 110.6513, 'https://example.com/bandengan.jpg',   'White-sand Bandengan beach (OSM verified)'),
+('Museum R.A. Kartini',               5, 8000,  'Museum',     -6.5886, 110.6672, 'https://example.com/museumkrt.jpg',   'Memorial museum to R.A. Kartini (OSM verified)'),
+('Pulau Panjang',                     5, 25000, 'Island',     -6.5758, 110.6284, 'https://example.com/pulau.jpg',       'Small island with snorkeling spots (OSM verified)'),
+('Benteng VOC Jepara',                5, 5000,  'Historical', -6.5864, 110.6669, 'https://example.com/voc.jpg',         'Fort Jepara XVI Dutch-era fort (OSM verified)');
+-- Removed: "Desa Wisata Karimunjawa Bay View" (Karimunjawa is far offshore, not
+-- a mainland Jepara attraction) and "Air Terjun Songgolangit" (could not
+-- verify coordinates in OSM). Re-add later when authoritative coords known.
 
--- ===== Salatiga =====
+-- ===== Salatiga (all coords OSM-verified via Nominatim) =====
 INSERT INTO tourist_places (name, city_id, ticket_price, category, lat, lng, image_url, description) VALUES
-('Kopeng Treetop Adventure Park',     6, 50000, 'Adventure',  -7.2456, 110.4502, 'https://example.com/kopeng.jpg',      'Treetop adventure park north of Salatiga'),
-('Umbul Sidomukti',                   6, 25000, 'Recreation', -7.2150, 110.4339, 'https://example.com/sidomukti.jpg',   'Mountain pool resort with flying fox'),
-('Air Terjun Tujuh Bidadari',         6, 10000, 'Nature',     -7.2553, 110.4561, 'https://example.com/bidadari.jpg',    'Seven-tier waterfall in Sumogawe'),
-('Puncak Telomoyo',                   6, 15000, 'Nature',     -7.3700, 110.3993, 'https://example.com/telomoyo.jpg',    'Mountain peak with antenna view'),
-('Museum Palagan Ambarawa',           6, 5000,  'Museum',     -7.2627, 110.4042, 'https://example.com/palagan.jpg',     'WWII / Independence-war museum'),
-('Museum Kereta Api Ambarawa',        6, 30000, 'Museum',     -7.2617, 110.4034, 'https://example.com/ka-amb.jpg',      'Railway museum with vintage steam train'),
-('Rawa Pening',                       6, 5000,  'Nature',     -7.3000, 110.4350, 'https://example.com/rawa.jpg',        'Large lake between Salatiga and Ambarawa'),
-('Alun-Alun Pancasila Salatiga',      6, 0,     'Cultural',   -7.3322, 110.5066, 'https://example.com/alunsal.jpg',     'City square in Salatiga');
+('Taman Wisata Kopeng',               6, 25000, 'Recreation', -7.3982, 110.4191, 'https://example.com/kopeng.jpg',      'Cool-climate mountain resort area in Getasan (OSM verified)'),
+('Umbul Sidomukti',                   6, 25000, 'Recreation', -7.1942, 110.3738, 'https://example.com/sidomukti.jpg',   'Mountain pool resort with flying fox (OSM verified)'),
+('Puncak Telomoyo',                   6, 15000, 'Nature',     -7.3654, 110.4041, 'https://example.com/telomoyo.jpg',    'Mountain peak with antenna view (OSM verified)'),
+('Monumen Palagan Ambarawa',          6, 5000,  'Monument',   -7.2493, 110.4199, 'https://example.com/palagan.jpg',     'Independence-war memorial monument (OSM verified)'),
+('Museum Kereta Api Ambarawa',        6, 30000, 'Museum',     -7.2652, 110.4022, 'https://example.com/ka-amb.jpg',      'Railway museum with vintage steam train (OSM verified)'),
+('Rawa Pening',                       6, 5000,  'Nature',     -7.2878, 110.4344, 'https://example.com/rawa.jpg',        'Large lake between Salatiga and Ambarawa (OSM verified)'),
+('Eling Bening Ambarawa',             6, 25000, 'Park',       -7.2525, 110.4266, 'https://example.com/elingb.jpg',      'Hilltop garden with valley view (OSM verified)'),
+('Lapangan Pancasila Salatiga',       6, 0,     'Cultural',   -7.3303, 110.4995, 'https://example.com/alunsal.jpg',     'Pancasila town square Salatiga (OSM verified)');
+-- Removed: "Air Terjun Tujuh Bidadari" (could not verify in OSM). Re-add
+-- later when authoritative coords known.
 
 -- ===== Purwokerto =====
 INSERT INTO tourist_places (name, city_id, ticket_price, category, lat, lng, image_url, description) VALUES

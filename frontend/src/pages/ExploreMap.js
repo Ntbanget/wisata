@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Filter, MapPin, Hotel, Camera } from 'lucide-react';
 import { apiService } from '../services/api';
 import { useBooking } from '../context/BookingContext';
@@ -9,10 +9,17 @@ import ErrorMessage from '../components/ErrorMessage';
 
 const ExploreMap = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const cityIdFromQuery = parseInt(searchParams.get('city'), 10) || null;
+  const nightsFromQuery = parseInt(searchParams.get('nights'), 10) || null;
   const { setSelectedPackage } = useBooking();
   const [cities, setCities] = useState([]);
   const [selectedCity, setSelectedCity] = useState(null);
-  const [nights, setNights] = useState(1);
+  const [nights, setNights] = useState(
+    nightsFromQuery && nightsFromQuery >= 1 && nightsFromQuery <= 14
+      ? nightsFromQuery
+      : 1,
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
@@ -51,7 +58,15 @@ const ExploreMap = () => {
   const loadCities = async () => {
     try {
       const response = await apiService.getCities();
-      setCities(response.data || []);
+      const list = response.data || [];
+      setCities(list);
+      // Pre-select the city from ?city=N (used when a user clicks the
+      // "Custom" button from a Paket detail/list, so they don't have to
+      // pick the city again).
+      if (cityIdFromQuery) {
+        const preset = list.find((c) => c.id === cityIdFromQuery);
+        if (preset) setSelectedCity(preset);
+      }
       setIsLoading(false);
     } catch (err) {
       const detail =

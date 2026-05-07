@@ -75,8 +75,16 @@ const PackagePage = () => {
   };
 
   // Packages are FIXED. To customize, users go to Explore Map instead.
-  const handleGoToExplore = () => {
-    navigate('/explore');
+  // Pre-filter Explore Map by the city that was searched so users don't
+  // have to pick the city again.
+  const handleGoToExplore = (cityIdOverride = null) => {
+    const cityId = cityIdOverride
+      || (searchCriteria && searchCriteria.city_id);
+    if (cityId) {
+      navigate(`/explore?city=${cityId}`);
+    } else {
+      navigate('/explore');
+    }
   };
 
   const handleShare = async (packageData) => {
@@ -313,7 +321,7 @@ const PackagePage = () => {
                       View Details
                     </button>
                     <button
-                      onClick={handleGoToExplore}
+                      onClick={() => handleGoToExplore(packageData.hotel && packageData.hotel.city_id)}
                       className="flex-1 btn-outline text-sm"
                       title="Build your own custom trip on Explore Map"
                     >

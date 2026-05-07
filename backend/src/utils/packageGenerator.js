@@ -192,6 +192,68 @@ function splitPlacesByMalam(places, nights) {
   });
 }
 
+// Distribute places across {nights} buckets, capping each malam at
+// {maxEndMinutes} (default 17:00 = sore). Uses the actual malam timeline
+// (drive + visit + return-to-hotel) to decide whether a candidate place
+// still fits before pushing it to the next malam.
+//
+// Constraints (packages only):
+//   - each malam ideally has ≥1 destinasi
+//   - at most ONE empty malam allowed (rest day)
+//   - leftover places (don't fit in any malam) are dropped
+function packPlacesByMalamWithTimeCap(
+  hotel,
+  places,
+  nights,
+  startMinutes = 540,
+  maxEndMinutes = 17 * 60,
+) {
+  const buckets = Array.from({ length: nights }, () => []);
+  let cursorMalam = 0;
+
+  for (const place of places) {
+    if (cursorMalam >= nights) break;
+    // Try to fit the place in the current malam.
+    const candidate = [...buckets[cursorMalam], place];
+    const sched = buildMalamTimeline(hotel, candidate, startMinutes);
+    const endMinutes = startMinutes + sched.totalMin;
+    if (endMinutes <= maxEndMinutes) {
+      buckets[cursorMalam].push(place);
+      continue;
+    }
+    // Doesn't fit. Move to next malam (skip ahead) and try there. If the
+    // current malam is empty, force-add the place anyway so we don't have
+    // an empty leading malam.
+    if (buckets[cursorMalam].length === 0) {
+      buckets[cursorMalam].push(place);
+      cursorMalam += 1;
+      continue;
+    }
+    cursorMalam += 1;
+    if (cursorMalam < nights) {
+      buckets[cursorMalam].push(place);
+    }
+  }
+
+  // Backfill: if there are empty malam (>1) and any malam has ≥2 places,
+  // move one place from a packed malam to the empty one so each malam ends
+  // up with at least one destinasi (one empty rest-day is still OK).
+  let emptyCount = buckets.filter((b) => b.length === 0).length;
+  for (let attempt = 0; attempt < nights && emptyCount > 1; attempt++) {
+    const emptyIdx = buckets.findIndex((b) => b.length === 0);
+    if (emptyIdx === -1) break;
+    const donorIdx = buckets.findIndex((b) => b.length > 1);
+    if (donorIdx === -1) break;
+    buckets[emptyIdx].push(buckets[donorIdx].pop());
+    emptyCount = buckets.filter((b) => b.length === 0).length;
+  }
+
+  return buckets.map((nightPlaces, idx) => ({
+    malam: idx + 1,
+    places: nightPlaces,
+  }));
+}
+
 class PackageGenerator {
   // Generate travel packages.
   // Strategy: produce up to 3 packages mixing hotel tiers (budget / mid / luxury)
@@ -205,7 +267,13 @@ class PackageGenerator {
     } = options;
 
     const safeNights = Math.max(1, Math.min(parseInt(nights, 10) || 1, 14));
-    const targetPlaces = Math.min(Math.max(maxPlaces, safeNights * 2), 12);
+    // Aim for ~2 destinasi per malam plus 1 extra so users get variety but
+    // each malam still finishes by sore. The packing algorithm caps malam
+    // at 17:00 and drops anything that wouldn't fit.
+    const targetPlaces = Math.min(
+      Math.max(maxPlaces, safeNights * 2 + 1),
+      Math.min(safeNights * 3 + 1, 12),
+    );
 
     const allHotels = await Hotel.getByCity(cityId);
     const allPlaces = await TouristPlace.getByCity(cityId);
@@ -260,7 +328,16 @@ class PackageGenerator {
       const pick = pickDiversePlaces(ranked, targetPlaces, remaining + 50000, offset);
       if (pick.places.length === 0) continue;
 
-      const itineraryRaw = splitPlacesByMalam(pick.places, safeNights);
+      // Time-capped packing: each malam ends by 17:00; overflow rolls into
+      // the next malam. Empty malam allowed (rest day) but we backfill so
+      // there is at most ONE empty malam.
+      const itineraryRaw = packPlacesByMalamWithTimeCap(
+        hotel,
+        pick.places,
+        safeNights,
+        540,
+        17 * 60,
+      );
       const itinerary = itineraryRaw.map((bucket) => {
         const schedule = buildMalamTimeline(hotel, bucket.places, 540);
         return {
@@ -270,6 +347,18 @@ class PackageGenerator {
         };
       });
 
+      // Drop any places that didn't fit anywhere from the package's
+      // visible destination list, otherwise the UI shows attractions
+      // that have no scheduled visit.
+      const scheduledIds = new Set(
+        itinerary.flatMap((b) => b.places.map((p) => p.id)),
+      );
+      const fittedPlaces = pick.places.filter((p) => scheduledIds.has(p.id));
+      const fittedTotal = fittedPlaces.reduce(
+        (sum, p) => sum + (Number(p.ticket_price) || 0),
+        0,
+      );
+
       const totalDriveMin = itinerary.reduce((sum, b) => sum + b.schedule.totalDriveMin, 0);
       const totalVisitMin = itinerary.reduce((sum, b) => sum + b.schedule.totalVisitMin, 0);
 
@@ -277,14 +366,13 @@ class PackageGenerator {
         id: i + 1,
         hotel,
         hotel_tier: hotel.category,
-        tourist_places: pick.places,
-        itinerary,
+        tourist_places: fittedPlaces,
         nights: safeNights,
         hotel_total: hotelTotal,
-        places_total: pick.totalPrice,
-        total_price: hotelTotal + pick.totalPrice,
+        places_total: fittedTotal,
+        total_price: hotelTotal + fittedTotal,
         budget,
-        remaining_budget: budget - (hotelTotal + pick.totalPrice),
+        remaining_budget: budget - (hotelTotal + fittedTotal),
         total_drive_min: totalDriveMin,
         total_visit_min: totalVisitMin,
         score: this.calculatePackageScore(hotel, pick.places, budget),
