@@ -1,220 +1,339 @@
 const Hotel = require('../models/Hotel');
 const TouristPlace = require('../models/TouristPlace');
 
+// =====================================================================
+// Tour-scheduling helpers (mirror frontend src/utils/helpers.js)
+// =====================================================================
+const VISIT_MINUTES = {
+  Historical: 90,
+  Cultural: 60,
+  Religious: 45,
+  Museum: 60,
+  Monument: 30,
+  Park: 90,
+  Recreation: 120,
+  Adventure: 180,
+  Nature: 120,
+  Beach: 150,
+  Island: 180,
+  Market: 60,
+};
+const OPENING_HOURS = {
+  Historical: { open: '08:00', close: '17:00' },
+  Cultural:   { open: '08:00', close: '21:00' },
+  Religious:  { open: '04:00', close: '21:00' },
+  Museum:     { open: '08:00', close: '16:00' },
+  Monument:   { open: '06:00', close: '22:00' },
+  Park:       { open: '06:00', close: '18:00' },
+  Recreation: { open: '08:00', close: '21:00' },
+  Adventure:  { open: '07:00', close: '17:00' },
+  Nature:     { open: '06:00', close: '18:00' },
+  Beach:      { open: '05:00', close: '19:00' },
+  Island:     { open: '07:00', close: '17:00' },
+  Market:     { open: '08:00', close: '22:00' },
+};
+const visitMin = (cat) => VISIT_MINUTES[cat] || 90;
+const openingHours = (cat) => OPENING_HOURS[cat] || { open: '08:00', close: '17:00' };
+const hhmm = (mins) => {
+  const safe = ((Math.round(mins) % 1440) + 1440) % 1440;
+  const h = Math.floor(safe / 60);
+  const m = safe % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+};
+const haversineKm = (lat1, lng1, lat2, lng2) => {
+  const R = 6371;
+  const toRad = (x) => (x * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+};
+const driveMinutes = (km, kmh = 40) => Math.max(5, Math.round((km / kmh) * 60));
+
+// Build one malam's timeline starting from the hotel.
+function buildMalamTimeline(hotel, places, startMinutes = 540) {
+  if (!hotel || !places || places.length === 0) {
+    return {
+      events: [],
+      totalDriveMin: 0,
+      totalVisitMin: 0,
+      totalMin: 0,
+      startTime: hhmm(startMinutes),
+      endTime: hhmm(startMinutes),
+    };
+  }
+  const events = [];
+  let cursor = startMinutes;
+  let totalDrive = 0;
+  let totalVisit = 0;
+  events.push({ time: hhmm(cursor), type: 'depart', label: `Berangkat dari ${hotel.name}` });
+  let prev = hotel;
+  for (const place of places) {
+    const km = haversineKm(Number(prev.lat), Number(prev.lng), Number(place.lat), Number(place.lng));
+    const drive = driveMinutes(km);
+    cursor += drive;
+    totalDrive += drive;
+    events.push({
+      time: hhmm(cursor),
+      type: 'arrive',
+      place_id: place.id,
+      place_name: place.name,
+      distance_km: Math.round(km * 10) / 10,
+      drive_min: drive,
+      label: `Tiba di ${place.name} (${(Math.round(km * 10) / 10)} km · ${drive} mnt)`,
+    });
+    const v = visitMin(place.category);
+    cursor += v;
+    totalVisit += v;
+    events.push({
+      time: hhmm(cursor),
+      type: 'leave',
+      place_id: place.id,
+      place_name: place.name,
+      visit_min: v,
+      opening: openingHours(place.category),
+      label: `Selesai kunjungan ${place.name}`,
+    });
+    prev = place;
+  }
+  const distBack = haversineKm(Number(prev.lat), Number(prev.lng), Number(hotel.lat), Number(hotel.lng));
+  const back = driveMinutes(distBack);
+  cursor += back;
+  totalDrive += back;
+  events.push({
+    time: hhmm(cursor),
+    type: 'return',
+    distance_km: Math.round(distBack * 10) / 10,
+    drive_min: back,
+    label: `Kembali ke ${hotel.name} (${(Math.round(distBack * 10) / 10)} km)`,
+  });
+
+  return {
+    events,
+    totalDriveMin: totalDrive,
+    totalVisitMin: totalVisit,
+    totalMin: totalDrive + totalVisit,
+    startTime: hhmm(startMinutes),
+    endTime: hhmm(cursor),
+  };
+}
+
+// =====================================================================
+// Place-popularity ranking
+// =====================================================================
+const POPULAR_CATEGORY_PRIORITY = {
+  Historical: 1,
+  Beach: 2,
+  Nature: 3,
+  Cultural: 4,
+  Recreation: 5,
+  Adventure: 6,
+  Religious: 7,
+  Monument: 8,
+  Park: 9,
+  Museum: 10,
+  Island: 11,
+  Market: 12,
+};
+
+function rankPlacesByPopularity(places) {
+  // Famous landmarks are typically: high ticket price OR free iconic monuments.
+  // Sort by category priority first, then by ticket_price descending so flagship
+  // attractions like Borobudur surface above ordinary parks.
+  return [...places].sort((a, b) => {
+    const pa = POPULAR_CATEGORY_PRIORITY[a.category] || 99;
+    const pb = POPULAR_CATEGORY_PRIORITY[b.category] || 99;
+    if (pa !== pb) return pa - pb;
+    if (b.ticket_price !== a.ticket_price) return b.ticket_price - a.ticket_price;
+    return a.id - b.id;
+  });
+}
+
+// Pick {count} places with category diversity + budget constraint.
+function pickDiversePlaces(rankedPlaces, count, budget, offset = 0) {
+  const selected = [];
+  const used = new Set();
+  let total = 0;
+  // First pass: enforce category diversity.
+  for (let i = offset; i < rankedPlaces.length && selected.length < count; i++) {
+    const p = rankedPlaces[i];
+    if (used.has(p.category)) continue;
+    if (total + p.ticket_price > budget) continue;
+    selected.push(p);
+    total += p.ticket_price;
+    used.add(p.category);
+  }
+  // Second pass: top up regardless of category if still short.
+  if (selected.length < count) {
+    for (let i = 0; i < rankedPlaces.length && selected.length < count; i++) {
+      const p = rankedPlaces[i];
+      if (selected.find((s) => s.id === p.id)) continue;
+      if (total + p.ticket_price > budget) continue;
+      selected.push(p);
+      total += p.ticket_price;
+    }
+  }
+  return { places: selected, totalPrice: total };
+}
+
+// Distribute a flat list of places into {nights} buckets (round-robin).
+function splitPlacesByMalam(places, nights) {
+  const buckets = Array.from({ length: nights }, () => []);
+  places.forEach((place, idx) => {
+    buckets[idx % nights].push(place);
+  });
+  return buckets.map((nightPlaces, idx) => {
+    return {
+      malam: idx + 1,
+      places: nightPlaces,
+    };
+  });
+}
+
 class PackageGenerator {
-  // Generate travel packages based on city, budget, and number of nights.
-  // For multi-night trips, destinations are grouped into a per-day itinerary.
+  // Generate travel packages.
+  // Strategy: produce up to 3 packages mixing hotel tiers (budget / mid / luxury)
+  // around the same set of popular places for the city, so users see clear price
+  // tiers instead of three near-identical packages.
   static async generatePackages(cityId, budget, options = {}) {
     const {
       packagesCount = 3,
       maxPlaces = 4,
       nights = 1,
-      hotelBudgetRatio = 0.5,
-      placesBudgetRatio = 0.3
     } = options;
 
     const safeNights = Math.max(1, Math.min(parseInt(nights, 10) || 1, 14));
-    const days = safeNights + 1; // 1 night = 2 days, etc.
-    // Aim for roughly maxPlaces destinations per day, but cap so generation stays fast.
-    const totalPlacesTarget = Math.min(maxPlaces * days, 12);
+    const targetPlaces = Math.min(Math.max(maxPlaces, safeNights * 2), 12);
 
-    // Hotel budget covers ALL nights, not just one — so divide before passing to filter.
-    const hotelBudgetPerNight = (budget * hotelBudgetRatio) / safeNights;
-    const placesBudget = budget * placesBudgetRatio;
+    const allHotels = await Hotel.getByCity(cityId);
+    const allPlaces = await TouristPlace.getByCity(cityId);
 
-    const hotels = await Hotel.getByCityAndBudget(cityId, hotelBudgetPerNight);
-    const places = await TouristPlace.getByCityAndBudget(cityId, placesBudget);
-
-    if (hotels.length === 0 || places.length === 0) {
+    if (!allHotels || allHotels.length === 0 || !allPlaces || allPlaces.length === 0) {
       return [];
     }
 
+    // Affordable hotels = those whose cost over the whole stay still leaves room
+    // for at least one cheap entry ticket. We try to keep hotelTotal < 80% of budget.
+    const hotelLimit = Math.max(budget * 0.85, budget - 10000);
+    const affordableHotels = allHotels
+      .filter((h) => h.price_per_night * safeNights <= hotelLimit)
+      .sort((a, b) => a.price_per_night - b.price_per_night);
+
+    // If even the cheapest hotel exceeds the budget, try with the cheapest one
+    // anyway so the page returns at least one tier instead of empty.
+    const fallbackHotel = allHotels.slice().sort((a, b) => a.price_per_night - b.price_per_night)[0];
+    let hotelChoices = [];
+    if (affordableHotels.length === 0 && fallbackHotel) {
+      hotelChoices = [fallbackHotel];
+    } else {
+      // Pick distinct tiers: cheapest, median, priciest within budget.
+      const cheap = affordableHotels[0];
+      const luxury = affordableHotels[affordableHotels.length - 1];
+      const midIdx = Math.max(0, Math.min(
+        affordableHotels.length - 1,
+        Math.floor(affordableHotels.length / 2),
+      ));
+      const mid = affordableHotels[midIdx];
+      const seen = new Set();
+      [cheap, mid, luxury].forEach((h) => {
+        if (h && !seen.has(h.id)) {
+          seen.add(h.id);
+          hotelChoices.push(h);
+        }
+      });
+    }
+    hotelChoices = hotelChoices.slice(0, packagesCount);
+
+    const ranked = rankPlacesByPopularity(allPlaces);
+
     const packages = [];
+    for (let i = 0; i < hotelChoices.length; i++) {
+      const hotel = hotelChoices[i];
+      const hotelTotal = hotel.price_per_night * safeNights;
+      const remaining = Math.max(0, budget - hotelTotal);
 
-    for (let i = 0; i < packagesCount && i < hotels.length; i++) {
-      const hotel = hotels[i];
-      const hotelCost = hotel.price_per_night * safeNights;
-      const remainingBudget = budget - hotelCost;
-      if (remainingBudget <= 0) continue;
+      // Each tier picks slightly different popular sets to add variety while
+      // still favouring iconic destinations.
+      const offset = i;  // 0, 1, 2 -> different starting point in the ranked list
+      const pick = pickDiversePlaces(ranked, targetPlaces, remaining + 50000, offset);
+      if (pick.places.length === 0) continue;
 
-      const affordablePlaces = places.filter(place => place.ticket_price <= remainingBudget);
-      if (affordablePlaces.length === 0) continue;
+      const itineraryRaw = splitPlacesByMalam(pick.places, safeNights);
+      const itinerary = itineraryRaw.map((bucket) => {
+        const schedule = buildMalamTimeline(hotel, bucket.places, 540);
+        return {
+          malam: bucket.malam,
+          places: bucket.places,
+          schedule,
+        };
+      });
 
-      const combinations = this.generatePlaceCombinations(
-        affordablePlaces,
-        remainingBudget,
-        totalPlacesTarget
-      );
-      if (combinations.length === 0) continue;
-
-      const bestCombination = combinations[0];
-      const itinerary = this.splitPlacesByDay(bestCombination.places, days);
+      const totalDriveMin = itinerary.reduce((sum, b) => sum + b.schedule.totalDriveMin, 0);
+      const totalVisitMin = itinerary.reduce((sum, b) => sum + b.schedule.totalVisitMin, 0);
 
       packages.push({
         id: i + 1,
         hotel,
-        tourist_places: bestCombination.places,
+        hotel_tier: hotel.category,
+        tourist_places: pick.places,
         itinerary,
         nights: safeNights,
-        days,
-        hotel_total: hotelCost,
-        total_price: hotelCost + bestCombination.totalPrice,
+        hotel_total: hotelTotal,
+        places_total: pick.totalPrice,
+        total_price: hotelTotal + pick.totalPrice,
         budget,
-        remaining_budget: budget - (hotelCost + bestCombination.totalPrice),
-        score: this.calculatePackageScore(hotel, bestCombination.places, budget)
+        remaining_budget: budget - (hotelTotal + pick.totalPrice),
+        total_drive_min: totalDriveMin,
+        total_visit_min: totalVisitMin,
+        score: this.calculatePackageScore(hotel, pick.places, budget),
       });
     }
 
-    packages.sort((a, b) => b.score - a.score);
+    // Order: cheapest first so user sees budget-friendly option up top.
+    packages.sort((a, b) => a.total_price - b.total_price);
     return packages.slice(0, packagesCount);
   }
 
-  // Split a flat list of places into per-day buckets (Day 1, Day 2, ...).
-  // Distribution is round-robin so every day has a mix of categories.
   static splitPlacesByDay(places, days) {
-    const buckets = Array.from({ length: days }, () => []);
-    places.forEach((place, idx) => {
-      buckets[idx % days].push(place);
-    });
-    return buckets.map((dayPlaces, idx) => ({
-      day: idx + 1,
-      places: dayPlaces
-    }));
+    return splitPlacesByMalam(places, days);
   }
 
-  // Generate different combinations of tourist places
-  static generatePlaceCombinations(places, budget, maxPlaces) {
-    const combinations = [];
-    
-    // Try different numbers of places (2 to maxPlaces)
-    for (let count = 2; count <= maxPlaces && count <= places.length; count++) {
-      const combination = this.selectBestPlaces(places, budget, count);
-      if (combination.places.length > 0) {
-        combinations.push(combination);
-      }
-    }
-    
-    // Sort by total places value (prioritize more places within budget)
-    combinations.sort((a, b) => {
-      if (a.places.length !== b.places.length) {
-        return b.places.length - a.places.length;
-      }
-      return a.totalPrice - b.totalPrice;
-    });
-    
-    return combinations;
-  }
-
-  // Select best places for given count and budget
-  static selectBestPlaces(places, budget, count) {
-    // Sort by category priority and price
-    const sortedPlaces = [...places].sort((a, b) => {
-      const categoryPriority = {
-        'Historical': 1,
-        'Nature': 2,
-        'Cultural': 3,
-        'Beach': 4,
-        'Religious': 5,
-        'Adventure': 6,
-        'Museum': 7,
-        'Park': 8,
-        'Monument': 9
-      };
-      
-      const aPriority = categoryPriority[a.category] || 10;
-      const bPriority = categoryPriority[b.category] || 10;
-      
-      if (aPriority !== bPriority) {
-        return aPriority - bPriority;
-      }
-      
-      return a.ticket_price - b.ticket_price;
-    });
-
-    const selectedPlaces = [];
-    let totalPrice = 0;
-
-    // Greedy selection with category diversity
-    const usedCategories = new Set();
-    
-    for (const place of sortedPlaces) {
-      if (selectedPlaces.length >= count) break;
-      if (totalPrice + place.ticket_price > budget) break;
-      
-      // Prefer diverse categories
-      if (!usedCategories.has(place.category) || selectedPlaces.length === 0) {
-        selectedPlaces.push(place);
-        totalPrice += place.ticket_price;
-        usedCategories.add(place.category);
-      }
-    }
-
-    // If we didn't get enough places, try filling with any affordable places
-    if (selectedPlaces.length < count) {
-      for (const place of sortedPlaces) {
-        if (selectedPlaces.length >= count) break;
-        if (totalPrice + place.ticket_price > budget) break;
-        if (!selectedPlaces.includes(place)) {
-          selectedPlaces.push(place);
-          totalPrice += place.ticket_price;
-        }
-      }
-    }
-
-    return {
-      places: selectedPlaces,
-      totalPrice
-    };
-  }
-
-  // Calculate package score for ranking
   static calculatePackageScore(hotel, places, budget) {
     let score = 0;
-    
-    // Hotel rating contributes 40% to score
     score += (hotel.rating / 5) * 40;
-    
-    // Number of places contributes 30%
-    const placesScore = Math.min(places.length / 4, 1) * 30;
-    score += placesScore;
-    
-    // Category diversity contributes 20%
-    const categories = new Set(places.map(p => p.category));
-    const diversityScore = Math.min(categories.size / 3, 1) * 20;
-    score += diversityScore;
-    
-    // Budget efficiency contributes 10%
+    score += Math.min(places.length / 4, 1) * 30;
+    const categories = new Set(places.map((p) => p.category));
+    score += Math.min(categories.size / 3, 1) * 20;
     const totalPrice = hotel.price_per_night + places.reduce((sum, p) => sum + p.ticket_price, 0);
-    const efficiencyScore = Math.max(0, 1 - (totalPrice - budget * 0.7) / (budget * 0.3)) * 10;
-    score += Math.max(0, efficiencyScore);
-    
+    const efficiency = Math.max(0, 1 - (totalPrice - budget * 0.7) / (budget * 0.3)) * 10;
+    score += Math.max(0, efficiency);
     return Math.round(score * 10) / 10;
   }
 
-  // Calculate custom package price
+  // Calculate custom package price (kept for /custom flow).
   static async calculateCustomPackage(hotelId, placeIds, nights = 1) {
     try {
-      // Get hotel details
       const hotel = await Hotel.getById(hotelId);
       if (!hotel) {
         throw new Error('Hotel not found');
       }
 
-      // Get tourist places
       const places = await TouristPlace.getByIds(placeIds);
       if (places.length !== placeIds.length) {
         throw new Error('Some tourist places not found');
       }
 
-      // Calculate total price
-      const hotelPrice = hotel.price_per_night * nights;
+      const safeNights = Math.max(1, Math.min(parseInt(nights, 10) || 1, 14));
+      const hotelPrice = hotel.price_per_night * safeNights;
       const placesPrice = places.reduce((sum, place) => sum + place.ticket_price, 0);
       const totalPrice = hotelPrice + placesPrice;
 
       return {
         hotel,
         tourist_places: places,
-        nights,
+        nights: safeNights,
         hotel_price: hotelPrice,
         places_price: placesPrice,
         total_price: totalPrice,
@@ -222,71 +341,67 @@ class PackageGenerator {
           hotel: {
             name: hotel.name,
             price_per_night: hotel.price_per_night,
-            nights,
-            total: hotelPrice
+            nights: safeNights,
+            total: hotelPrice,
           },
-          places: places.map(place => ({
+          places: places.map((place) => ({
             name: place.name,
             category: place.category,
             ticket_price: place.ticket_price,
-            total: place.ticket_price
+            total: place.ticket_price,
           })),
           summary: {
             subtotal: totalPrice,
             tax: 0,
-            total: totalPrice
-          }
-        }
+            total: totalPrice,
+          },
+        },
       };
     } catch (error) {
       throw new Error(`Failed to calculate custom package: ${error.message}`);
     }
   }
 
-  // Get budget breakdown suggestions
   static getBudgetBreakdown(budget) {
     return {
       hotel: {
         amount: budget * 0.5,
         percentage: 50,
-        description: 'Accommodation (50% of budget)'
+        description: 'Akomodasi (50% dari budget)',
       },
       tourist_places: {
         amount: budget * 0.3,
         percentage: 30,
-        description: 'Tourist destinations (30% of budget)'
+        description: 'Tiket destinasi (30% dari budget)',
       },
       buffer: {
         amount: budget * 0.2,
         percentage: 20,
-        description: 'Buffer for meals, transport, and other expenses (20% of budget)'
+        description: 'Buffer makan, transport, dll. (20% dari budget)',
       },
-      total: budget
+      total: budget,
     };
   }
 
-  // Validate package availability
   static async validatePackage(hotelId, placeIds, budget) {
     try {
       const customPackage = await this.calculateCustomPackage(hotelId, placeIds);
-      
       if (customPackage.total_price > budget) {
         return {
           valid: false,
           error: 'Package exceeds budget',
-          excess: customPackage.total_price - budget
+          excess: customPackage.total_price - budget,
         };
       }
-
       return {
         valid: true,
         package: customPackage,
-        remaining_budget: budget - customPackage.total_price
+        remaining_budget: budget - customPackage.total_price,
       };
     } catch (error) {
       return {
         valid: false,
-        error: error.message
+        error: error.message,
       };
     }
   }

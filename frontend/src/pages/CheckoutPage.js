@@ -384,10 +384,13 @@ const CheckoutPage = () => {
                 </h4>
                 {packageData.itinerary && packageData.itinerary.length > 0 ? (
                   <div className="space-y-3">
-                    {packageData.itinerary.map((day) => (
-                      <div key={day.day} className="bg-gray-50 rounded-lg p-3">
-                        <div className="text-xs font-semibold text-gray-700 mb-2">
-                          Hari {day.day}
+                    {packageData.itinerary.map((day, idx) => (
+                      <div key={day.malam || day.day || idx} className="bg-gray-50 rounded-lg p-3">
+                        <div className="text-xs font-semibold text-gray-700 mb-2 flex items-baseline justify-between">
+                          <span>Malam {day.malam || day.day || (idx + 1)}</span>
+                          {day.schedule && day.places && day.places.length > 0 && (
+                            <span className="font-mono text-gray-500">{day.schedule.startTime} → {day.schedule.endTime}</span>
+                          )}
                         </div>
                         {day.places.length === 0 ? (
                           <div className="text-xs text-gray-500 italic">

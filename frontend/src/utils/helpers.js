@@ -244,3 +244,165 @@ export const getScoreColor = (score) => {
   if (score >= 4) return 'text-orange-600';
   return 'text-red-600';
 };
+
+// =====================================================================
+// Tour scheduling helpers
+//   - getVisitMinutes(category)         -> typical visit duration
+//   - getOpeningHours(category)         -> typical open/close window
+//   - computeDailySchedule(hotel,places) -> full timeline for one malam
+// =====================================================================
+
+const _VISIT_MINUTES = {
+  Historical: 90,
+  Cultural:   60,
+  Religious:  45,
+  Museum:     60,
+  Monument:   30,
+  Park:       90,
+  Recreation: 120,
+  Adventure:  180,
+  Nature:     120,
+  Beach:      150,
+  Island:     180,
+  Market:     60,
+};
+
+export const getVisitMinutes = (category) => _VISIT_MINUTES[category] || 90;
+
+const _OPENING_HOURS = {
+  Historical: { open: '08:00', close: '17:00' },
+  Cultural:   { open: '08:00', close: '21:00' },
+  Religious:  { open: '04:00', close: '21:00' },
+  Museum:     { open: '08:00', close: '16:00' },
+  Monument:   { open: '06:00', close: '22:00' },
+  Park:       { open: '06:00', close: '18:00' },
+  Recreation: { open: '08:00', close: '21:00' },
+  Adventure:  { open: '07:00', close: '17:00' },
+  Nature:     { open: '06:00', close: '18:00' },
+  Beach:      { open: '05:00', close: '19:00' },
+  Island:     { open: '07:00', close: '17:00' },
+  Market:     { open: '08:00', close: '22:00' },
+};
+
+export const getOpeningHours = (category) => _OPENING_HOURS[category] || { open: '08:00', close: '17:00' };
+
+const _hhmm = (mins) => {
+  const safe = ((Math.round(mins) % (24 * 60)) + 24 * 60) % (24 * 60);
+  const h = Math.floor(safe / 60);
+  const m = safe % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+};
+
+export const formatHHMM = _hhmm;
+
+export const formatDurationMinutes = (mins) => {
+  const m = Math.max(0, Math.round(mins));
+  if (m < 60) return `${m} mnt`;
+  const h = Math.floor(m / 60);
+  const rem = m % 60;
+  if (rem === 0) return `${h} jam`;
+  return `${h} jam ${rem} mnt`;
+};
+
+// Build a single-malam timeline starting from the hotel.
+//   options.startMinutes        -> minutes-since-midnight (default 540 = 09:00)
+//   options.drivingSpeedKmH     -> haversine fallback (default 40)
+//   options.driveMinutesOverride -> array of real driving minutes per leg from OSRM
+//   options.placeVisitOverride  -> per-place visit minutes (allows custom override)
+export const computeDailySchedule = (hotel, places, options = {}) => {
+  const {
+    startMinutes = 540,
+    drivingSpeedKmH = 40,
+    driveMinutesOverride = null,
+    placeVisitOverride = null,
+  } = options;
+
+  const safePlaces = Array.isArray(places) ? places.filter(Boolean) : [];
+  if (!hotel || safePlaces.length === 0) {
+    return {
+      events: [],
+      totalDriveMin: 0,
+      totalVisitMin: 0,
+      totalMin: 0,
+      startTime: _hhmm(startMinutes),
+      endTime: _hhmm(startMinutes),
+    };
+  }
+
+  const events = [];
+  let cursor = startMinutes;
+  let totalDrive = 0;
+  let totalVisit = 0;
+
+  events.push({
+    time: _hhmm(cursor),
+    type: 'depart',
+    label: `Berangkat dari ${hotel.name}`,
+  });
+
+  let prev = hotel;
+  for (let i = 0; i < safePlaces.length; i++) {
+    const place = safePlaces[i];
+    const distKm = calculateDistance(
+      Number(prev.lat), Number(prev.lng),
+      Number(place.lat), Number(place.lng)
+    );
+    const haversineMin = Math.max(5, Math.round((distKm / drivingSpeedKmH) * 60));
+    const driveMin = (Array.isArray(driveMinutesOverride) && driveMinutesOverride[i] != null)
+      ? Math.max(1, Math.round(driveMinutesOverride[i]))
+      : haversineMin;
+
+    cursor += driveMin;
+    totalDrive += driveMin;
+    events.push({
+      time: _hhmm(cursor),
+      type: 'arrive',
+      place,
+      distanceKm: Math.round(distKm * 10) / 10,
+      driveMin,
+      label: `Tiba di ${place.name} (${(Math.round(distKm * 10) / 10)} km · ${driveMin} mnt)`,
+    });
+
+    const visitMin = (placeVisitOverride && placeVisitOverride[place.id] != null)
+      ? Math.max(15, Math.round(placeVisitOverride[place.id]))
+      : getVisitMinutes(place.category);
+
+    cursor += visitMin;
+    totalVisit += visitMin;
+    const opening = getOpeningHours(place.category);
+    events.push({
+      time: _hhmm(cursor),
+      type: 'leave',
+      place,
+      visitMin,
+      opening,
+      label: `Selesai kunjungan ${place.name} (~${formatDurationMinutes(visitMin)})`,
+    });
+
+    prev = place;
+  }
+
+  const distBack = calculateDistance(
+    Number(prev.lat), Number(prev.lng),
+    Number(hotel.lat), Number(hotel.lng)
+  );
+  const driveBack = Math.max(5, Math.round((distBack / drivingSpeedKmH) * 60));
+  cursor += driveBack;
+  totalDrive += driveBack;
+  events.push({
+    time: _hhmm(cursor),
+    type: 'return',
+    distanceKm: Math.round(distBack * 10) / 10,
+    driveMin: driveBack,
+    label: `Kembali ke ${hotel.name} (${(Math.round(distBack * 10) / 10)} km)`,
+  });
+
+  return {
+    events,
+    totalDriveMin: totalDrive,
+    totalVisitMin: totalVisit,
+    totalMin: totalDrive + totalVisit,
+    startTime: _hhmm(startMinutes),
+    endTime: _hhmm(cursor),
+  };
+};

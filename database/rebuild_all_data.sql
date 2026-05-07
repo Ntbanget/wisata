@@ -76,8 +76,8 @@ INSERT INTO hotels (name, city_id, price_per_night, rating, category, lat, lng, 
 
 -- ===== Wonosobo (city_id=4, center: -7.3607, 109.9025) =====
 INSERT INTO hotels (name, city_id, price_per_night, rating, category, lat, lng, image_url, description) VALUES
-('Hotel Surya Asia Wonosobo',  4, 380000, 3.7, 'medium', -7.3576, 109.9018, 'https://example.com/surya.jpg',    'City hotel near Alun-Alun'),
-('Hotel Kresna Wonosobo',      4, 450000, 4.0, 'medium', -7.3605, 109.9027, 'https://example.com/kresna.jpg',   'Heritage hotel in Wonosobo center'),
+('Hotel Surya Asia Wonosobo',  4, 380000, 3.7, 'medium', -7.3679, 109.9014, 'https://example.com/surya.jpg',    'City hotel near Alun-Alun'),
+('Hotel Kresna Wonosobo',      4, 450000, 4.0, 'medium', -7.3554, 109.9048, 'https://example.com/kresna.jpg',   'Heritage hotel in Wonosobo center'),
 ('Hotel Alana Wonosobo',       4, 620000, 4.2, 'high',   -7.3582, 109.9089, 'https://example.com/alana.jpg',    'Mid-range hotel with mountain view'),
 ('Dieng Plateau Homestay',     4, 280000, 3.8, 'low',    -7.2090, 109.9135, 'https://example.com/dieng.jpg',    'Walk to Telaga Warna and Candi Arjuna'),
 ('Bukit Scooter Hotel Dieng',  4, 380000, 4.0, 'medium', -7.2095, 109.9085, 'https://example.com/scooter.jpg',  'Sunrise-view hotel in Dieng');
@@ -103,9 +103,9 @@ INSERT INTO hotels (name, city_id, price_per_night, rating, category, lat, lng, 
 
 -- ===== Pekalongan (city_id=9, center: -6.8897, 109.6753) =====
 INSERT INTO hotels (name, city_id, price_per_night, rating, category, lat, lng, image_url, description) VALUES
-('Hotel Dafam Pekalongan',   9, 450000, 3.9, 'medium', -6.8901, 109.6694, 'https://example.com/dafam-pkl.jpg',   'Modern hotel near batik center'),
-('Hotel Santika Pekalongan', 9, 520000, 4.2, 'medium', -6.8870, 109.6747, 'https://example.com/santika-pkl.jpg', 'Mid-range hotel with batik theme'),
-('Hotel Horison Pekalongan', 9, 320000, 3.5, 'low',    -6.8888, 109.6753, 'https://example.com/horison-pkl.jpg', 'Budget hotel near train station');
+('Hotel Dafam Pekalongan',   9, 450000, 3.9, 'medium', -6.9015, 109.6642, 'https://example.com/dafam-pkl.jpg',   'Modern hotel near batik center'),
+('Hotel Santika Pekalongan', 9, 520000, 4.2, 'medium', -6.8886, 109.6640, 'https://example.com/santika-pkl.jpg', 'Mid-range hotel with batik theme'),
+('Hotel Horison Pekalongan', 9, 320000, 3.5, 'low',    -6.8886, 109.6634, 'https://example.com/horison-pkl.jpg', 'Budget hotel near train station');
 
 -- ===== Pemalang (city_id=10, center: -6.8911, 109.3777) =====
 INSERT INTO hotels (name, city_id, price_per_night, rating, category, lat, lng, image_url, description) VALUES
@@ -113,7 +113,7 @@ INSERT INTO hotels (name, city_id, price_per_night, rating, category, lat, lng, 
 ('Hotel Winner Pemalang',         10, 320000, 3.6, 'low',    -6.8908, 109.3792, 'https://example.com/winner.jpg',  'Budget hotel near Alun-Alun Pemalang'),
 ('Hotel Kencana Pemalang',        10, 480000, 4.0, 'medium', -6.8950, 109.3760, 'https://example.com/kencana.jpg', 'Mid-range hotel with restaurant'),
 ('Pantai Widuri Resort',          10, 620000, 4.2, 'high',   -6.8597, 109.3782, 'https://example.com/widuri-r.jpg','Beachfront resort at Pantai Widuri'),
-('Hotel Lembah Asri Karangreja',  10, 450000, 4.0, 'medium', -7.2305, 109.4351, 'https://example.com/lembah.jpg',  'Hotel near D''LAS Lembah Asri Serang');
+('Hotel Lembah Asri Karangreja',  10, 450000, 4.0, 'medium', -7.2425, 109.2918, 'https://example.com/lembah.jpg',  'Hotel near D''LAS Lembah Asri Serang');
 
 -- ===== Kendal (city_id=11, center: -6.9197, 110.2030) =====
 INSERT INTO hotels (name, city_id, price_per_night, rating, category, lat, lng, image_url, description) VALUES
@@ -178,14 +178,14 @@ INSERT INTO tourist_places (name, city_id, ticket_price, category, lat, lng, ima
 
 -- ===== Wonosobo (within ~50km of Wonosobo center) =====
 INSERT INTO tourist_places (name, city_id, ticket_price, category, lat, lng, image_url, description) VALUES
-('Telaga Warna Dieng',                4, 20000, 'Nature',     -7.2114, 109.9152, 'https://example.com/warna.jpg',       'Color-changing volcanic lake in Dieng'),
-('Candi Arjuna Dieng',                4, 15000, 'Historical', -7.2073, 109.9089, 'https://example.com/arjuna.jpg',      'Hindu temple complex in Dieng plateau'),
-('Kawah Sikidang',                    4, 15000, 'Nature',     -7.2240, 109.9125, 'https://example.com/sikidang.jpg',    'Active volcanic crater with fumaroles'),
-('Bukit Sikunir',                     4, 20000, 'Nature',     -7.2570, 109.9362, 'https://example.com/sikunir.jpg',     'Famous golden-sunrise viewpoint'),
-('Telaga Menjer',                     4, 8000,  'Nature',     -7.2840, 109.9367, 'https://example.com/menjer.jpg',      'Mountain lake near Wonosobo town'),
+('Telaga Warna Dieng',                4, 20000, 'Nature',     -7.2137, 109.9154, 'https://example.com/warna.jpg',       'Color-changing volcanic lake in Dieng'),
+('Candi Arjuna Dieng',                4, 15000, 'Historical', -7.2050, 109.9069, 'https://example.com/arjuna.jpg',      'Hindu temple complex in Dieng plateau'),
+('Kawah Sikidang',                    4, 15000, 'Nature',     -7.2197, 109.9048, 'https://example.com/sikidang.jpg',    'Active volcanic crater with fumaroles'),
+('Bukit Sikunir',                     4, 20000, 'Nature',     -7.2387, 109.9250, 'https://example.com/sikunir.jpg',     'Famous golden-sunrise viewpoint'),
+('Telaga Menjer',                     4, 8000,  'Nature',     -7.2688, 109.9257, 'https://example.com/menjer.jpg',      'Mountain lake near Wonosobo town'),
 ('Dieng Plateau Theater',             4, 10000, 'Cultural',   -7.2083, 109.9117, 'https://example.com/teater.jpg',      'Mini cinema about Dieng history'),
-('Batu Pandang Ratapan Angin',        4, 12000, 'Nature',     -7.2078, 109.9100, 'https://example.com/ratapan.jpg',     'Cliff viewpoint over Telaga Warna'),
-('Alun-Alun Wonosobo',                4, 0,     'Cultural',   -7.3607, 109.9025, 'https://example.com/alunwsb.jpg',     'City square in Wonosobo center');
+('Batu Pandang Ratapan Angin',        4, 12000, 'Nature',     -7.2178, 109.9168, 'https://example.com/ratapan.jpg',     'Cliff viewpoint over Telaga Warna'),
+('Alun-Alun Wonosobo',                4, 0,     'Cultural',   -7.3587, 109.9030, 'https://example.com/alunwsb.jpg',     'City square in Wonosobo center');
 
 -- ===== Jepara =====
 INSERT INTO tourist_places (name, city_id, ticket_price, category, lat, lng, image_url, description) VALUES
@@ -221,14 +221,14 @@ INSERT INTO tourist_places (name, city_id, ticket_price, category, lat, lng, ima
 
 -- ===== Pekalongan =====
 INSERT INTO tourist_places (name, city_id, ticket_price, category, lat, lng, image_url, description) VALUES
-('Museum Batik Pekalongan',           9, 15000, 'Museum',     -6.8886, 109.6663, 'https://example.com/mbtk.jpg',       'Comprehensive batik museum'),
-('Pantai Pasir Kencana',              9, 10000, 'Beach',      -6.8748, 109.6738, 'https://example.com/kencana.jpg',    'City beach with food stalls'),
-('Pantai Slamaran Indah',             9, 10000, 'Beach',      -6.8744, 109.6850, 'https://example.com/slamaran.jpg',   'Family beach near Pasir Kencana'),
-('Kampung Batik Kauman',              9, 0,     'Cultural',   -6.8860, 109.6685, 'https://example.com/kauman.jpg',     'Traditional batik village'),
-('International Batik Center',        9, 10000, 'Cultural',   -6.8869, 109.6685, 'https://example.com/ibc.jpg',        'Batik shopping and demos'),
-('Pantai Wonokerto',                  9, 5000,  'Beach',      -6.8612, 109.7200, 'https://example.com/wonokerto.jpg',  'Fishing-village beach in Wiradesa'),
-('Linggoasri',                        9, 10000, 'Nature',     -7.0353, 109.6400, 'https://example.com/linggo.jpg',     'Highland recreation area south of Pekalongan'),
-('Kampung Arab Klego Pekalongan',     9, 0,     'Cultural',   -6.8923, 109.6770, 'https://example.com/klego.jpg',      'Heritage Arab quarter');
+('Museum Batik Pekalongan',           9, 15000, 'Museum',     -6.8786, 109.6756, 'https://example.com/mbtk.jpg',       'Comprehensive batik museum'),
+('Pantai Pasir Kencana',              9, 10000, 'Beach',      -6.8693, 109.6839, 'https://example.com/kencana.jpg',    'City beach with food stalls'),
+('Pantai Slamaran Indah',             9, 10000, 'Beach',      -6.8693, 109.6914, 'https://example.com/slamaran.jpg',   'Family beach near Pasir Kencana'),
+('Kampung Batik Kauman',              9, 0,     'Cultural',   -6.8909, 109.6741, 'https://example.com/kauman.jpg',     'Traditional batik village'),
+('International Batik Center',        9, 10000, 'Cultural',   -6.8920, 109.6255, 'https://example.com/ibc.jpg',        'Batik shopping and demos'),
+('Pantai Wonokerto',                  9, 5000,  'Beach',      -6.8702, 109.6237, 'https://example.com/wonokerto.jpg',  'Fishing-village beach in Wiradesa'),
+('Linggoasri',                        9, 10000, 'Nature',     -7.1022, 109.5827, 'https://example.com/linggo.jpg',     'Highland recreation area south of Pekalongan'),
+('Kampung Arab Klego Pekalongan',     9, 0,     'Cultural',   -6.8821, 109.6790, 'https://example.com/klego.jpg',      'Heritage Arab quarter');
 
 -- ===== Pemalang =====
 INSERT INTO tourist_places (name, city_id, ticket_price, category, lat, lng, image_url, description) VALUES
@@ -237,8 +237,8 @@ INSERT INTO tourist_places (name, city_id, ticket_price, category, lat, lng, ima
 ('Pantai Blendung',                   10, 5000,  'Beach',      -6.8174, 109.4906, 'https://example.com/blendung.jpg',  'Quiet beach with mangrove'),
 ('Curug Bengkawah',                   10, 10000, 'Nature',     -7.0058, 109.5181, 'https://example.com/bengkawah.jpg', 'Twin waterfall in Belik'),
 ('Curug Sibedil',                     10, 8000,  'Nature',     -7.0024, 109.5119, 'https://example.com/sibedil.jpg',   'Tiered waterfall in Watukumpul'),
-('D''LAS Desa Wisata Lembah Asri Serang', 10, 25000, 'Recreation', -7.2289, 109.4339, 'https://example.com/dlas.jpg', 'Family park on Mount Slamet slopes'),
-('Bukit Mendelem',                    10, 10000, 'Nature',     -7.0200, 109.4700, 'https://example.com/mendelem.jpg',  'Hilltop with panoramic view'),
+('D''LAS Desa Wisata Lembah Asri Serang', 10, 25000, 'Recreation', -7.2425, 109.2918, 'https://example.com/dlas.jpg', 'Family park on Mount Slamet slopes'),
+('Bukit Mendelem',                    10, 10000, 'Nature',     -7.1717, 109.3437, 'https://example.com/mendelem.jpg',  'Hilltop with panoramic view'),
 ('Telaga Silating',                   10, 8000,  'Nature',     -6.9500, 109.4650, 'https://example.com/silating.jpg',  'Mountain lake in Moga');
 
 -- ===== Kendal =====

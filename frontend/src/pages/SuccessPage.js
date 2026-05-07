@@ -277,7 +277,7 @@ Thank you for booking with Wisata Jateng!
                   {itinerary.map((day, index) => (
                     <div key={index} className="border-l-4 border-primary-600 pl-6">
                       <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                        Day {day.day}
+                        Malam {day.day}
                       </h3>
                       
                       <div className="space-y-3">

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { MapPin, Star, Calendar, Users, ArrowRight, Heart, Share2, Clock, Navigation, DollarSign } from 'lucide-react';
 import { apiService } from '../services/api';
 import { useBooking } from '../context/BookingContext';
-import { formatCurrency, getRatingStars, getHotelCategoryLabel, getHotelCategoryColor, getPlaceCategoryIcon, generateItinerary, calculateDistance, estimateTravelTime } from '../utils/helpers';
+import { formatCurrency, getRatingStars, getHotelCategoryLabel, getHotelCategoryColor, getPlaceCategoryIcon, generateItinerary, calculateDistance, estimateTravelTime, formatDurationMinutes, computeDailySchedule, getOpeningHours } from '../utils/helpers';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
 
@@ -108,14 +108,23 @@ const DetailPage = () => {
     );
   }
 
-  // Prefer backend-supplied per-day itinerary (when nights > 1) but fall back to a
+  // Prefer backend-supplied per-malam itinerary (with timeline) but fall back to a
   // heuristic split so old data without `itinerary` still renders.
   const itinerary = generateItinerary(packageData.hotel, packageData.tourist_places);
-  const dayPlan = (packageData.itinerary && packageData.itinerary.length > 0)
+  const malamPlan = (packageData.itinerary && packageData.itinerary.length > 0)
     ? packageData.itinerary
     : null;
   const nights = packageData.nights || 1;
-  const days = packageData.days || (nights + 1);
+  // Build per-malam timelines on the client when backend didn't supply schedule.
+  const malamTimelines = malamPlan
+    ? malamPlan.map((bucket) => {
+        if (bucket.schedule && bucket.schedule.events && bucket.schedule.events.length > 0) {
+          return bucket.schedule;
+        }
+        return computeDailySchedule(packageData.hotel, bucket.places || []);
+      })
+    : [];
+  const totalTourMin = malamTimelines.reduce((sum, t) => sum + (t?.totalMin || 0), 0);
   const totalDistance = packageData.tourist_places.reduce((acc, place, index) => {
     const from = index === 0 ? packageData.hotel : packageData.tourist_places[index - 1];
     return acc + calculateDistance(from.lat, from.lng, place.lat, place.lng);
@@ -132,7 +141,10 @@ const DetailPage = () => {
                 {packageData.hotel.name}
               </h1>
               <p className="text-primary-100">
-                {nights} malam · {days} hari · {packageData.tourist_places.length} destinasi
+                {nights} malam · {packageData.tourist_places.length} destinasi
+                {totalTourMin > 0 && (
+                  <> · estimasi tour {formatDurationMinutes(totalTourMin)}</>
+                )}
               </p>
             </div>
             
@@ -235,9 +247,9 @@ const DetailPage = () => {
                   <div className="text-center p-4 bg-secondary-50 rounded-lg">
                     <Clock className="w-8 h-8 text-secondary-600 mx-auto mb-2" />
                     <div className="text-2xl font-bold text-secondary-600">
-                      {days}
+                      {nights}
                     </div>
-                    <div className="text-sm text-gray-600">Hari ({nights} malam)</div>
+                    <div className="text-sm text-gray-600">Malam menginap</div>
                   </div>
                   
                   <div className="text-center p-4 bg-accent-50 rounded-lg">
@@ -426,52 +438,81 @@ const DetailPage = () => {
         {activeTab === 'itinerary' && (
           <div className="card p-6">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">
-              Rencana Perjalanan ({nights} malam · {days} hari)
+              Rencana Perjalanan ({nights} malam)
             </h2>
 
-            {dayPlan ? (
-              <div className="space-y-6">
-                {dayPlan.map((day) => (
-                  <div key={day.day} className="border-l-4 border-primary-600 pl-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                      Hari {day.day}
-                      {day.day === 1 && (
-                        <span className="ml-2 text-sm font-normal text-gray-500">
-                          · Check-in di {packageData.hotel.name}
-                        </span>
-                      )}
-                    </h3>
+            {malamPlan ? (
+              <div className="space-y-8">
+                {malamPlan.map((bucket, idx) => {
+                  const malamNum = bucket.malam || bucket.day || (idx + 1);
+                  const sched = malamTimelines[idx] || { events: [], totalMin: 0, startTime: '09:00', endTime: '09:00' };
+                  const places = bucket.places || [];
+                  return (
+                    <div key={malamNum} className="border-l-4 border-primary-600 pl-6">
+                      <div className="flex flex-wrap items-baseline justify-between mb-3 gap-2">
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          Malam {malamNum}
+                          {malamNum === 1 && (
+                            <span className="ml-2 text-sm font-normal text-gray-500">
+                              · Check-in di {packageData.hotel.name}
+                            </span>
+                          )}
+                        </h3>
+                        {places.length > 0 && (
+                          <span className="text-xs text-gray-500">
+                            {sched.startTime} → {sched.endTime} · total {formatDurationMinutes(sched.totalMin)}
+                          </span>
+                        )}
+                      </div>
 
-                    {day.places.length === 0 ? (
-                      <div className="text-gray-500 italic">
-                        Free time / waktu istirahat di hotel.
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {day.places.map((place) => (
-                          <div key={place.id} className="flex items-start space-x-3">
-                            <div className="w-2 h-2 bg-primary-600 rounded-full mt-2"></div>
-                            <div className="flex-1">
-                              <div className="font-medium text-gray-900">
-                                {getPlaceCategoryIcon(place.category)} {place.name}
-                              </div>
-                              <div className="text-sm text-gray-600">
-                                {place.category} · {formatCurrency(place.ticket_price)}
-                              </div>
-                            </div>
+                      {places.length === 0 ? (
+                        <div className="text-gray-500 italic">
+                          Free time / waktu istirahat di hotel.
+                        </div>
+                      ) : (
+                        <>
+                          <div className="space-y-2 mb-3">
+                            {places.map((place) => {
+                              const opening = getOpeningHours(place.category);
+                              return (
+                                <div key={place.id} className="flex items-start space-x-3">
+                                  <div className="w-2 h-2 bg-primary-600 rounded-full mt-2"></div>
+                                  <div className="flex-1">
+                                    <div className="font-medium text-gray-900">
+                                      {getPlaceCategoryIcon(place.category)} {place.name}
+                                    </div>
+                                    <div className="text-sm text-gray-600">
+                                      {place.category} · {formatCurrency(place.ticket_price)} · jam buka {opening.open}–{opening.close}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
+
+                          <div className="mt-2 bg-gray-50 rounded-md p-3 text-xs text-gray-700">
+                            <div className="font-semibold text-gray-800 mb-1">Jadwal Tour</div>
+                            <ul className="space-y-1">
+                              {sched.events.map((ev, i) => (
+                                <li key={i} className="flex items-baseline gap-2">
+                                  <span className="font-mono text-gray-500 w-12">{ev.time}</span>
+                                  <span>{ev.label}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <div className="space-y-6">
                 {itinerary.map((day, index) => (
                   <div key={index} className="border-l-4 border-primary-600 pl-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                      Day {day.day}
+                      Malam {day.day}
                     </h3>
 
                     <div className="space-y-3">
@@ -512,19 +553,20 @@ const DetailPage = () => {
 
             {/* Travel Info */}
             <div className="mt-8 p-4 bg-blue-50 rounded-lg">
-              <h4 className="font-medium text-blue-900 mb-2">Travel Information</h4>
+              <h4 className="font-medium text-blue-900 mb-2">Informasi Perjalanan</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-800">
                 <div>
-                  <span className="font-medium">Total Distance:</span> {totalDistance.toFixed(1)} km
+                  <span className="font-medium">Total Jarak:</span> {totalDistance.toFixed(1)} km
                 </div>
                 <div>
-                  <span className="font-medium">Est. Travel Time:</span> {estimateTravelTime(totalDistance)}
+                  <span className="font-medium">Estimasi Waktu Tour:</span>{' '}
+                  {totalTourMin > 0 ? formatDurationMinutes(totalTourMin) : estimateTravelTime(totalDistance)}
                 </div>
                 <div>
-                  <span className="font-medium">Best Time to Visit:</span> Year-round
+                  <span className="font-medium">Waktu Terbaik:</span> Sepanjang tahun
                 </div>
                 <div>
-                  <span className="font-medium">Transportation:</span> Private vehicle recommended
+                  <span className="font-medium">Transportasi:</span> Sewa mobil disarankan
                 </div>
               </div>
             </div>

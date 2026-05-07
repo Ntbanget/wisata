@@ -176,13 +176,13 @@ const LandingPage = () => {
                     className="select-field"
                     required
                   >
-                    <option value={1}>1 malam (2 hari)</option>
-                    <option value={2}>2 malam (3 hari)</option>
-                    <option value={3}>3 malam (4 hari)</option>
-                    <option value={4}>4 malam (5 hari)</option>
-                    <option value={5}>5 malam (6 hari)</option>
-                    <option value={6}>6 malam (7 hari)</option>
-                    <option value={7}>7 malam (8 hari)</option>
+                    <option value={1}>1 malam</option>
+                    <option value={2}>2 malam</option>
+                    <option value={3}>3 malam</option>
+                    <option value={4}>4 malam</option>
+                    <option value={5}>5 malam</option>
+                    <option value={6}>6 malam</option>
+                    <option value={7}>7 malam</option>
                   </select>
                 </div>
               </div>

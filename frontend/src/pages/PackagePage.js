@@ -116,12 +116,24 @@ const PackagePage = () => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center max-w-md">
           <ErrorMessage error={error} />
-          <button
-            onClick={() => navigate('/')}
-            className="btn-primary mt-6"
-          >
-            Back to Home
-          </button>
+          <p className="text-sm text-gray-500 mt-3 mb-6">
+            Pilih kota, budget, dan jumlah malam di halaman utama untuk melihat
+            paket. Atau buat trip sendiri di Jelajahi Peta.
+          </p>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={() => navigate('/')}
+              className="btn-primary"
+            >
+              Mulai Pencarian
+            </button>
+            <button
+              onClick={() => navigate('/explore')}
+              className="btn-outline"
+            >
+              Jelajahi Peta
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -240,7 +252,7 @@ const PackagePage = () => {
                   {packageData.nights && (
                     <div className="mb-3 inline-flex items-center px-2 py-1 rounded-full bg-secondary-50 text-secondary-700 text-xs font-medium">
                       <Calendar className="w-3 h-3 mr-1" />
-                      {packageData.nights} malam · {packageData.days || (packageData.nights + 1)} hari
+                      {packageData.nights} malam
                     </div>
                   )}
 

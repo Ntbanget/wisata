@@ -23,7 +23,7 @@ const ExploreMap = () => {
     maxPrice: ''
   });
 
-  const handleBookCustomTrip = ({ hotel, tourist_places, total_price, nights: tripNights, days, itinerary }) => {
+  const handleBookCustomTrip = ({ hotel, tourist_places, total_price, nights: tripNights, itinerary }) => {
     const customPackage = {
       id: 0,
       hotel,
@@ -31,7 +31,6 @@ const ExploreMap = () => {
       total_price,
       budget: total_price,
       nights: tripNights || 1,
-      days: days || 2,
       itinerary: itinerary || null,
       isCustom: true
     };
@@ -140,13 +139,13 @@ const ExploreMap = () => {
                   className="select-field text-sm py-1.5 pr-8 w-auto"
                   title="Berapa malam menginap?"
                 >
-                  <option value={1}>1 (2 hari)</option>
-                  <option value={2}>2 (3 hari)</option>
-                  <option value={3}>3 (4 hari)</option>
-                  <option value={4}>4 (5 hari)</option>
-                  <option value={5}>5 (6 hari)</option>
-                  <option value={6}>6 (7 hari)</option>
-                  <option value={7}>7 (8 hari)</option>
+                  <option value={1}>1 malam</option>
+                  <option value={2}>2 malam</option>
+                  <option value={3}>3 malam</option>
+                  <option value={4}>4 malam</option>
+                  <option value={5}>5 malam</option>
+                  <option value={6}>6 malam</option>
+                  <option value={7}>7 malam</option>
                 </select>
               </div>
               <button
