@@ -265,46 +265,47 @@ class Booking {
     return result[0];
   }
 
-  // Get popular destinations
+  // Get popular destinations (with graceful fallback when there are no bookings yet —
+  // e.g. right after a fresh data rebuild — so the home-page cards still appear).
   static async getPopularDestinations(limit = 10) {
     const sql = `
-      SELECT 
+      SELECT
         tp.id,
         tp.name,
         tp.category,
         tp.city_id,
-        c.name as city_name,
-        COUNT(bd.id) as booking_count,
-        SUM(bd.quantity) as total_visits
-      FROM booking_details bd
-      JOIN tourist_places tp ON bd.tourist_place_id = tp.id
+        c.name AS city_name,
+        COUNT(bd.id) AS booking_count,
+        COALESCE(SUM(bd.quantity), 0) AS total_visits
+      FROM tourist_places tp
       JOIN cities c ON tp.city_id = c.id
-      WHERE bd.tourist_place_id IS NOT NULL
+      LEFT JOIN booking_details bd
+        ON bd.tourist_place_id = tp.id
       GROUP BY tp.id, tp.name, tp.category, tp.city_id, c.name
-      ORDER BY booking_count DESC, total_visits DESC
+      ORDER BY booking_count DESC, total_visits DESC, tp.ticket_price DESC, tp.id ASC
       LIMIT ?
     `;
     return await query(sql, [limit]);
   }
 
-  // Get popular hotels
+  // Get popular hotels (with graceful fallback when there are no bookings yet).
   static async getPopularHotels(limit = 10) {
     const sql = `
-      SELECT 
+      SELECT
         h.id,
         h.name,
         h.category,
         h.rating,
         h.city_id,
-        c.name as city_name,
-        COUNT(bd.id) as booking_count,
-        AVG(bd.price_per_item) as avg_price_paid
-      FROM booking_details bd
-      JOIN hotels h ON bd.hotel_id = h.id
+        c.name AS city_name,
+        COUNT(bd.id) AS booking_count,
+        AVG(COALESCE(bd.price_per_item, h.price_per_night)) AS avg_price_paid
+      FROM hotels h
       JOIN cities c ON h.city_id = c.id
-      WHERE bd.hotel_id IS NOT NULL
-      GROUP BY h.id, h.name, h.category, h.rating, h.city_id, c.name
-      ORDER BY booking_count DESC
+      LEFT JOIN booking_details bd
+        ON bd.hotel_id = h.id
+      GROUP BY h.id, h.name, h.category, h.rating, h.city_id, c.name, h.price_per_night
+      ORDER BY booking_count DESC, h.rating DESC, h.id ASC
       LIMIT ?
     `;
     return await query(sql, [limit]);

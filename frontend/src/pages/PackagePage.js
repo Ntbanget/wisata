@@ -236,10 +236,18 @@ const PackagePage = () => {
                     </div>
                   </div>
 
+                  {/* Trip Length */}
+                  {packageData.nights && (
+                    <div className="mb-3 inline-flex items-center px-2 py-1 rounded-full bg-secondary-50 text-secondary-700 text-xs font-medium">
+                      <Calendar className="w-3 h-3 mr-1" />
+                      {packageData.nights} malam · {packageData.days || (packageData.nights + 1)} hari
+                    </div>
+                  )}
+
                   {/* Destinations */}
                   <div className="mb-4">
                     <h4 className="text-sm font-medium text-gray-700 mb-2">
-                      Destinations ({packageData.tourist_places.length})
+                      Destinasi ({packageData.tourist_places.length})
                     </h4>
                     <div className="flex flex-wrap gap-1">
                       {packageData.tourist_places.slice(0, 3).map((place, index) => (

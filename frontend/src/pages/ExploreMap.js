@@ -12,6 +12,7 @@ const ExploreMap = () => {
   const { setSelectedPackage } = useBooking();
   const [cities, setCities] = useState([]);
   const [selectedCity, setSelectedCity] = useState(null);
+  const [nights, setNights] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
@@ -22,13 +23,16 @@ const ExploreMap = () => {
     maxPrice: ''
   });
 
-  const handleBookCustomTrip = ({ hotel, tourist_places, total_price }) => {
+  const handleBookCustomTrip = ({ hotel, tourist_places, total_price, nights: tripNights, days, itinerary }) => {
     const customPackage = {
       id: 0,
       hotel,
       tourist_places,
       total_price,
       budget: total_price,
+      nights: tripNights || 1,
+      days: days || 2,
+      itinerary: itinerary || null,
       isCustom: true
     };
     setSelectedPackage(customPackage);
@@ -124,13 +128,35 @@ const ExploreMap = () => {
               </div>
             </div>
             
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="btn-outline flex items-center space-x-2"
-            >
-              <Filter className="w-5 h-5" />
-              <span>Filters</span>
-            </button>
+            <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2">
+                <label htmlFor="explore-nights" className="text-sm text-gray-700 whitespace-nowrap">
+                  Malam:
+                </label>
+                <select
+                  id="explore-nights"
+                  value={nights}
+                  onChange={(e) => setNights(parseInt(e.target.value, 10))}
+                  className="select-field text-sm py-1.5 pr-8 w-auto"
+                  title="Berapa malam menginap?"
+                >
+                  <option value={1}>1 (2 hari)</option>
+                  <option value={2}>2 (3 hari)</option>
+                  <option value={3}>3 (4 hari)</option>
+                  <option value={4}>4 (5 hari)</option>
+                  <option value={5}>5 (6 hari)</option>
+                  <option value={6}>6 (7 hari)</option>
+                  <option value={7}>7 (8 hari)</option>
+                </select>
+              </div>
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="btn-outline flex items-center space-x-2"
+              >
+                <Filter className="w-5 h-5" />
+                <span>Filters</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -253,10 +279,11 @@ const ExploreMap = () => {
       {/* Map */}
       <div className="container py-8">
         <div className="card p-0 overflow-hidden">
-          <MapView 
+          <MapView
             cityId={selectedCity?.id}
             height="600px"
             onBookCustomTrip={handleBookCustomTrip}
+            nights={nights}
           />
         </div>
       </div>

@@ -362,10 +362,17 @@ const CheckoutPage = () => {
                 <div className="bg-gray-50 rounded-lg p-3">
                   <div className="font-medium text-gray-900">{packageData.hotel.name}</div>
                   <div className="text-sm text-gray-600">
-                    {getHotelCategoryLabel(packageData.hotel.category)} • 1 night
+                    {getHotelCategoryLabel(packageData.hotel.category)} • {packageData.nights || 1} malam
                   </div>
                   <div className="text-sm font-medium text-gray-900 mt-1">
-                    {formatCurrency(packageData.hotel.price_per_night)}
+                    {formatCurrency(packageData.hotel.price_per_night)} / malam
+                    {(packageData.nights || 1) > 1 && (
+                      <span className="text-gray-500 ml-1">
+                        × {packageData.nights} = {formatCurrency(
+                          (packageData.hotel_total || packageData.hotel.price_per_night * (packageData.nights || 1))
+                        )}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -373,23 +380,56 @@ const CheckoutPage = () => {
               {/* Destinations */}
               <div className="mb-4">
                 <h4 className="font-medium text-gray-900 mb-2">
-                  Destinations ({packageData.tourist_places.length})
+                  Destinasi ({packageData.tourist_places.length})
                 </h4>
-                <div className="space-y-2">
-                  {packageData.tourist_places.map((place, index) => (
-                    <div key={index} className="bg-gray-50 rounded-lg p-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-sm">{getPlaceCategoryIcon(place.category)}</span>
-                          <span className="text-sm font-medium text-gray-900">{place.name}</span>
+                {packageData.itinerary && packageData.itinerary.length > 0 ? (
+                  <div className="space-y-3">
+                    {packageData.itinerary.map((day) => (
+                      <div key={day.day} className="bg-gray-50 rounded-lg p-3">
+                        <div className="text-xs font-semibold text-gray-700 mb-2">
+                          Hari {day.day}
                         </div>
-                        <span className="text-sm text-gray-600">
-                          {formatCurrency(place.ticket_price)}
-                        </span>
+                        {day.places.length === 0 ? (
+                          <div className="text-xs text-gray-500 italic">
+                            Free time / waktu istirahat
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            {day.places.map((place) => (
+                              <div key={place.id} className="flex items-center justify-between">
+                                <div className="flex items-center space-x-2 min-w-0">
+                                  <span className="text-sm">{getPlaceCategoryIcon(place.category)}</span>
+                                  <span className="text-sm font-medium text-gray-900 truncate">
+                                    {place.name}
+                                  </span>
+                                </div>
+                                <span className="text-sm text-gray-600 ml-2 flex-shrink-0">
+                                  {formatCurrency(place.ticket_price)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {packageData.tourist_places.map((place, index) => (
+                      <div key={index} className="bg-gray-50 rounded-lg p-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm">{getPlaceCategoryIcon(place.category)}</span>
+                            <span className="text-sm font-medium text-gray-900">{place.name}</span>
+                          </div>
+                          <span className="text-sm text-gray-600">
+                            {formatCurrency(place.ticket_price)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Price Breakdown */}

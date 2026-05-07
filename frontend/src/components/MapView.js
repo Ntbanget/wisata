@@ -33,6 +33,7 @@ const MapView = ({
   height = '500px',
   onBookCustomTrip = null,
   readOnly = false,
+  nights = 1,
 }) => {
   const [hotels, setHotels] = useState([]);
   const [touristPlaces, setTouristPlaces] = useState([]);
@@ -40,9 +41,15 @@ const MapView = ({
   const [error, setError] = useState(null);
   const [selectedHotel, setSelectedHotel] = useState(null);
   const [selectedPlaces, setSelectedPlaces] = useState([]);
+  // Map place_id -> day number (1..days). Defaults to round-robin when adding.
+  const [placeDay, setPlaceDay] = useState({});
   const [routeGeometry, setRouteGeometry] = useState(null);
   const [routeStats, setRouteStats] = useState(null); // { distance_km, duration_min }
   const [routeLoading, setRouteLoading] = useState(false);
+
+  const safeNights = Math.max(1, Math.min(parseInt(nights, 10) || 1, 14));
+  const days = safeNights + 1;
+  const isMultiDay = days > 1 && !readOnly;
 
   // Center of Central Java
   const defaultCenter = [-7.0, 110.0];
@@ -134,7 +141,8 @@ const MapView = ({
       })
     : touristPlaces;
 
-  const hotelPrice = selectedHotel ? Number(selectedHotel.price_per_night) || 0 : 0;
+  const hotelPricePerNight = selectedHotel ? Number(selectedHotel.price_per_night) || 0 : 0;
+  const hotelPrice = hotelPricePerNight * safeNights;
   const placesPrice = selectedPlaces.reduce(
     (sum, place) => sum + (Number(place.ticket_price) || 0),
     0
@@ -143,12 +151,58 @@ const MapView = ({
 
   const handleRemovePlace = (placeId) => {
     setSelectedPlaces((prev) => prev.filter((p) => p.id !== placeId));
+    setPlaceDay((prev) => {
+      const copy = { ...prev };
+      delete copy[placeId];
+      return copy;
+    });
+  };
+
+  // Pick the day with the fewest destinations so far (load-balancing).
+  const nextDayForNewPlace = () => {
+    if (days <= 1) return 1;
+    const counts = Array.from({ length: days }, () => 0);
+    selectedPlaces.forEach((p) => {
+      const d = placeDay[p.id] || 1;
+      if (d >= 1 && d <= days) counts[d - 1]++;
+    });
+    let minIdx = 0;
+    for (let i = 1; i < counts.length; i++) {
+      if (counts[i] < counts[minIdx]) minIdx = i;
+    }
+    return minIdx + 1;
+  };
+
+  const handleAddPlace = (place) => {
+    setSelectedPlaces((prev) =>
+      prev.some((p) => p.id === place.id) ? prev : [...prev, place]
+    );
+    setPlaceDay((prev) =>
+      prev[place.id] ? prev : { ...prev, [place.id]: nextDayForNewPlace() }
+    );
+  };
+
+  const handleChangeDay = (placeId, day) => {
+    setPlaceDay((prev) => ({ ...prev, [placeId]: day }));
   };
 
   const handleClearSelection = () => {
     setSelectedHotel(null);
     setSelectedPlaces([]);
+    setPlaceDay({});
   };
+
+  // Build itinerary grouped by day for display + checkout payload.
+  const itineraryByDay = (() => {
+    if (days <= 1) return null;
+    const buckets = Array.from({ length: days }, (_, i) => ({ day: i + 1, places: [] }));
+    selectedPlaces.forEach((p) => {
+      const d = placeDay[p.id] || 1;
+      const idx = Math.min(Math.max(d, 1), days) - 1;
+      buckets[idx].places.push(p);
+    });
+    return buckets;
+  })();
 
   const handleBookTrip = () => {
     if (typeof onBookCustomTrip === 'function' && selectedHotel && selectedPlaces.length > 0) {
@@ -156,6 +210,9 @@ const MapView = ({
         hotel: selectedHotel,
         tourist_places: selectedPlaces,
         total_price: combinedTotal,
+        nights: safeNights,
+        days,
+        itinerary: itineraryByDay,
       });
     }
   };
@@ -406,20 +463,14 @@ const MapView = ({
                     )
                   ) : isSelectedPlace ? (
                     <button
-                      onClick={() =>
-                        setSelectedPlaces((prev) => prev.filter((p) => p.id !== place.id))
-                      }
+                      onClick={() => handleRemovePlace(place.id)}
                       className="mt-2 w-full text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
                     >
                       Remove from Trip
                     </button>
                   ) : (
                     <button
-                      onClick={() =>
-                        setSelectedPlaces((prev) =>
-                          prev.some((p) => p.id === place.id) ? prev : [...prev, place]
-                        )
-                      }
+                      onClick={() => handleAddPlace(place)}
                       className="mt-2 w-full text-xs bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600"
                     >
                       Add to Trip
@@ -483,7 +534,12 @@ const MapView = ({
                   <p className="text-xs font-medium text-blue-700 uppercase tracking-wide">Hotel</p>
                   <p className="text-sm font-medium text-gray-900 truncate">{selectedHotel.name}</p>
                   <p className="text-xs text-gray-600">
-                    {formatCurrency(selectedHotel.price_per_night)} / night
+                    {formatCurrency(selectedHotel.price_per_night)} / malam
+                    {safeNights > 1 && (
+                      <span className="ml-1 text-gray-500">
+                        × {safeNights} = {formatCurrency(hotelPrice)}
+                      </span>
+                    )}
                   </p>
                 </div>
                 {!readOnly && (
@@ -499,7 +555,7 @@ const MapView = ({
             </div>
           )}
 
-          {selectedPlaces.length > 0 && (
+          {selectedPlaces.length > 0 && !isMultiDay && (
             <div className="mb-3">
               <p className="text-xs font-medium text-green-700 uppercase tracking-wide mb-1">
                 Destinations ({selectedPlaces.length})
@@ -528,6 +584,60 @@ const MapView = ({
                   </li>
                 ))}
               </ul>
+            </div>
+          )}
+
+          {selectedPlaces.length > 0 && isMultiDay && itineraryByDay && (
+            <div className="mb-3 space-y-2">
+              <p className="text-xs font-medium text-green-700 uppercase tracking-wide">
+                Destinasi per Hari ({selectedPlaces.length} total · {safeNights} malam)
+              </p>
+              {itineraryByDay.map((dayGroup) => (
+                <div key={dayGroup.day} className="border border-gray-100 rounded-md p-2">
+                  <p className="text-xs font-semibold text-gray-700 mb-1">
+                    Hari {dayGroup.day}
+                    {dayGroup.places.length === 0 && (
+                      <span className="ml-1 font-normal text-gray-400">
+                        (belum ada destinasi)
+                      </span>
+                    )}
+                  </p>
+                  <ul className="space-y-1">
+                    {dayGroup.places.map((place) => (
+                      <li
+                        key={place.id}
+                        className="flex items-start justify-between gap-2 text-xs text-gray-800"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <span className="font-medium truncate block">{place.name}</span>
+                          <span className="text-[10px] text-gray-500">
+                            {formatCurrency(place.ticket_price)}
+                          </span>
+                        </div>
+                        <select
+                          value={placeDay[place.id] || 1}
+                          onChange={(e) => handleChangeDay(place.id, parseInt(e.target.value, 10))}
+                          className="text-[10px] border border-gray-300 rounded px-1 py-0.5"
+                          title="Pindahkan ke hari lain"
+                        >
+                          {Array.from({ length: days }, (_, i) => i + 1).map((d) => (
+                            <option key={d} value={d}>
+                              H{d}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={() => handleRemovePlace(place.id)}
+                          className="text-gray-400 hover:text-red-600 text-base leading-none flex-shrink-0"
+                          title="Hapus dari trip"
+                        >
+                          ×
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </div>
           )}
 

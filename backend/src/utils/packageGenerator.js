@@ -2,20 +2,27 @@ const Hotel = require('../models/Hotel');
 const TouristPlace = require('../models/TouristPlace');
 
 class PackageGenerator {
-  // Generate travel packages based on city and budget
+  // Generate travel packages based on city, budget, and number of nights.
+  // For multi-night trips, destinations are grouped into a per-day itinerary.
   static async generatePackages(cityId, budget, options = {}) {
     const {
       packagesCount = 3,
       maxPlaces = 4,
+      nights = 1,
       hotelBudgetRatio = 0.5,
       placesBudgetRatio = 0.3
     } = options;
 
-    const hotelBudget = budget * hotelBudgetRatio;
+    const safeNights = Math.max(1, Math.min(parseInt(nights, 10) || 1, 14));
+    const days = safeNights + 1; // 1 night = 2 days, etc.
+    // Aim for roughly maxPlaces destinations per day, but cap so generation stays fast.
+    const totalPlacesTarget = Math.min(maxPlaces * days, 12);
+
+    // Hotel budget covers ALL nights, not just one — so divide before passing to filter.
+    const hotelBudgetPerNight = (budget * hotelBudgetRatio) / safeNights;
     const placesBudget = budget * placesBudgetRatio;
 
-    // Get available hotels and places
-    const hotels = await Hotel.getByCityAndBudget(cityId, hotelBudget);
+    const hotels = await Hotel.getByCityAndBudget(cityId, hotelBudgetPerNight);
     const places = await TouristPlace.getByCityAndBudget(cityId, placesBudget);
 
     if (hotels.length === 0 || places.length === 0) {
@@ -24,41 +31,55 @@ class PackageGenerator {
 
     const packages = [];
 
-    // Generate multiple package combinations
     for (let i = 0; i < packagesCount && i < hotels.length; i++) {
       const hotel = hotels[i];
-      const remainingBudget = budget - hotel.price_per_night;
-      
-      // Get places that fit in remaining budget
+      const hotelCost = hotel.price_per_night * safeNights;
+      const remainingBudget = budget - hotelCost;
+      if (remainingBudget <= 0) continue;
+
       const affordablePlaces = places.filter(place => place.ticket_price <= remainingBudget);
-      
       if (affordablePlaces.length === 0) continue;
 
-      // Generate different combinations
-      const combinations = this.generatePlaceCombinations(affordablePlaces, remainingBudget, maxPlaces);
-      
-      // Take the best combination
-      if (combinations.length > 0) {
-        const bestCombination = combinations[0]; // Already sorted by value
-        
-        const packageData = {
-          id: i + 1,
-          hotel,
-          tourist_places: bestCombination.places,
-          total_price: hotel.price_per_night + bestCombination.totalPrice,
-          budget,
-          remaining_budget: budget - (hotel.price_per_night + bestCombination.totalPrice),
-          score: this.calculatePackageScore(hotel, bestCombination.places, budget)
-        };
-        
-        packages.push(packageData);
-      }
+      const combinations = this.generatePlaceCombinations(
+        affordablePlaces,
+        remainingBudget,
+        totalPlacesTarget
+      );
+      if (combinations.length === 0) continue;
+
+      const bestCombination = combinations[0];
+      const itinerary = this.splitPlacesByDay(bestCombination.places, days);
+
+      packages.push({
+        id: i + 1,
+        hotel,
+        tourist_places: bestCombination.places,
+        itinerary,
+        nights: safeNights,
+        days,
+        hotel_total: hotelCost,
+        total_price: hotelCost + bestCombination.totalPrice,
+        budget,
+        remaining_budget: budget - (hotelCost + bestCombination.totalPrice),
+        score: this.calculatePackageScore(hotel, bestCombination.places, budget)
+      });
     }
 
-    // Sort packages by score (best first)
     packages.sort((a, b) => b.score - a.score);
-
     return packages.slice(0, packagesCount);
+  }
+
+  // Split a flat list of places into per-day buckets (Day 1, Day 2, ...).
+  // Distribution is round-robin so every day has a mix of categories.
+  static splitPlacesByDay(places, days) {
+    const buckets = Array.from({ length: days }, () => []);
+    places.forEach((place, idx) => {
+      buckets[idx % days].push(place);
+    });
+    return buckets.map((dayPlaces, idx) => ({
+      day: idx + 1,
+      places: dayPlaces
+    }));
   }
 
   // Generate different combinations of tourist places

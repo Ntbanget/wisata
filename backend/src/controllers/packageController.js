@@ -5,7 +5,7 @@ class PackageController {
   // Generate travel packages
   static async generatePackages(req, res) {
     try {
-      const { city_id, budget, packages_count = 3, max_places = 4 } = req.query;
+      const { city_id, budget, packages_count = 3, max_places = 4, nights = 1 } = req.query;
       
       // Validate required parameters
       if (!city_id || !budget) {
@@ -41,13 +41,18 @@ class PackageController {
         ? parseInt(max_places) 
         : 4;
 
+      const nightsNum = validator.isInt(String(nights), { min: 1, max: 14 })
+        ? parseInt(nights)
+        : 1;
+
       // Generate packages
       const packages = await PackageGenerator.generatePackages(
         parseInt(city_id),
         budgetNum,
         {
           packagesCount,
-          maxPlaces
+          maxPlaces,
+          nights: nightsNum
         }
       );
 
@@ -63,7 +68,8 @@ class PackageController {
             city_id: parseInt(city_id),
             budget: budgetNum,
             packages_count: packagesCount,
-            max_places: maxPlaces
+            max_places: maxPlaces,
+            nights: nightsNum
           }
         }
       });

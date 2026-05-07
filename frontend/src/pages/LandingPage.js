@@ -11,6 +11,7 @@ const LandingPage = () => {
   const [cities, setCities] = useState([]);
   const [selectedCity, setSelectedCity] = useState('');
   const [budget, setBudget] = useState('');
+  const [nights, setNights] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [popularDestinations, setPopularDestinations] = useState([]);
@@ -51,6 +52,8 @@ const LandingPage = () => {
       return;
     }
 
+    const safeNights = Math.max(1, Math.min(parseInt(nights, 10) || 1, 14));
+
     setIsLoading(true);
     setError(null);
 
@@ -59,7 +62,8 @@ const LandingPage = () => {
         city_id: selectedCity,
         budget: parseFloat(budget),
         packages_count: 3,
-        max_places: 4
+        max_places: 4,
+        nights: safeNights
       });
 
       if (response.data.packages.length === 0) {
@@ -69,7 +73,8 @@ const LandingPage = () => {
         sessionStorage.setItem('searchResults', JSON.stringify(response.data));
         sessionStorage.setItem('searchCriteria', JSON.stringify({
           city_id: selectedCity,
-          budget: parseFloat(budget)
+          budget: parseFloat(budget),
+          nights: safeNights
         }));
         
         navigate('/packages');
@@ -124,11 +129,11 @@ const LandingPage = () => {
             </p>
 
             {/* Search Form */}
-            <form id="search-form" onSubmit={handleSearch} className="bg-white rounded-2xl shadow-large p-6 md:p-8 max-w-2xl mx-auto animate-slide-up">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <form id="search-form" onSubmit={handleSearch} className="bg-white rounded-2xl shadow-large p-6 md:p-8 max-w-3xl mx-auto animate-slide-up">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div>
-                  <label className="block text-gray-700 font-medium mb-2">
-                    Select City
+                  <label className="block text-gray-700 font-medium mb-2 text-left">
+                    Pilih Kota
                   </label>
                   <select
                     value={selectedCity}
@@ -144,9 +149,9 @@ const LandingPage = () => {
                     ))}
                   </select>
                 </div>
-                
+
                 <div>
-                  <label className="block text-gray-700 font-medium mb-2">
+                  <label className="block text-gray-700 font-medium mb-2 text-left">
                     Budget (IDR)
                   </label>
                   <input
@@ -159,6 +164,26 @@ const LandingPage = () => {
                     step="10000"
                     required
                   />
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 font-medium mb-2 text-left">
+                    Jumlah Malam
+                  </label>
+                  <select
+                    value={nights}
+                    onChange={(e) => setNights(parseInt(e.target.value, 10))}
+                    className="select-field"
+                    required
+                  >
+                    <option value={1}>1 malam (2 hari)</option>
+                    <option value={2}>2 malam (3 hari)</option>
+                    <option value={3}>3 malam (4 hari)</option>
+                    <option value={4}>4 malam (5 hari)</option>
+                    <option value={5}>5 malam (6 hari)</option>
+                    <option value={6}>6 malam (7 hari)</option>
+                    <option value={7}>7 malam (8 hari)</option>
+                  </select>
                 </div>
               </div>
 

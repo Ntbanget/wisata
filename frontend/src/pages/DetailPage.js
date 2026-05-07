@@ -108,7 +108,14 @@ const DetailPage = () => {
     );
   }
 
+  // Prefer backend-supplied per-day itinerary (when nights > 1) but fall back to a
+  // heuristic split so old data without `itinerary` still renders.
   const itinerary = generateItinerary(packageData.hotel, packageData.tourist_places);
+  const dayPlan = (packageData.itinerary && packageData.itinerary.length > 0)
+    ? packageData.itinerary
+    : null;
+  const nights = packageData.nights || 1;
+  const days = packageData.days || (nights + 1);
   const totalDistance = packageData.tourist_places.reduce((acc, place, index) => {
     const from = index === 0 ? packageData.hotel : packageData.tourist_places[index - 1];
     return acc + calculateDistance(from.lat, from.lng, place.lat, place.lng);
@@ -125,7 +132,7 @@ const DetailPage = () => {
                 {packageData.hotel.name}
               </h1>
               <p className="text-primary-100">
-                Complete travel package with {packageData.tourist_places.length} destinations
+                {nights} malam · {days} hari · {packageData.tourist_places.length} destinasi
               </p>
             </div>
             
@@ -228,9 +235,9 @@ const DetailPage = () => {
                   <div className="text-center p-4 bg-secondary-50 rounded-lg">
                     <Clock className="w-8 h-8 text-secondary-600 mx-auto mb-2" />
                     <div className="text-2xl font-bold text-secondary-600">
-                      {Math.ceil(packageData.tourist_places.length / 2) + 1}
+                      {days}
                     </div>
-                    <div className="text-sm text-gray-600">Days</div>
+                    <div className="text-sm text-gray-600">Hari ({nights} malam)</div>
                   </div>
                   
                   <div className="text-center p-4 bg-accent-50 rounded-lg">
@@ -418,49 +425,90 @@ const DetailPage = () => {
         {/* Itinerary Tab */}
         {activeTab === 'itinerary' && (
           <div className="card p-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Travel Itinerary</h2>
-            
-            <div className="space-y-6">
-              {itinerary.map((day, index) => (
-                <div key={index} className="border-l-4 border-primary-600 pl-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                    Day {day.day}
-                  </h3>
-                  
-                  <div className="space-y-3">
-                    {day.morning && (
-                      <div className="flex items-start space-x-3">
-                        <div className="w-2 h-2 bg-primary-600 rounded-full mt-2"></div>
-                        <div>
-                          <div className="font-medium text-gray-900">Morning</div>
-                          <div className="text-gray-600">{day.morning}</div>
-                        </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+              Rencana Perjalanan ({nights} malam · {days} hari)
+            </h2>
+
+            {dayPlan ? (
+              <div className="space-y-6">
+                {dayPlan.map((day) => (
+                  <div key={day.day} className="border-l-4 border-primary-600 pl-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                      Hari {day.day}
+                      {day.day === 1 && (
+                        <span className="ml-2 text-sm font-normal text-gray-500">
+                          · Check-in di {packageData.hotel.name}
+                        </span>
+                      )}
+                    </h3>
+
+                    {day.places.length === 0 ? (
+                      <div className="text-gray-500 italic">
+                        Free time / waktu istirahat di hotel.
                       </div>
-                    )}
-                    
-                    {day.afternoon && (
-                      <div className="flex items-start space-x-3">
-                        <div className="w-2 h-2 bg-primary-600 rounded-full mt-2"></div>
-                        <div>
-                          <div className="font-medium text-gray-900">Afternoon</div>
-                          <div className="text-gray-600">{day.afternoon}</div>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {day.evening && (
-                      <div className="flex items-start space-x-3">
-                        <div className="w-2 h-2 bg-primary-600 rounded-full mt-2"></div>
-                        <div>
-                          <div className="font-medium text-gray-900">Evening</div>
-                          <div className="text-gray-600">{day.evening}</div>
-                        </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {day.places.map((place) => (
+                          <div key={place.id} className="flex items-start space-x-3">
+                            <div className="w-2 h-2 bg-primary-600 rounded-full mt-2"></div>
+                            <div className="flex-1">
+                              <div className="font-medium text-gray-900">
+                                {getPlaceCategoryIcon(place.category)} {place.name}
+                              </div>
+                              <div className="text-sm text-gray-600">
+                                {place.category} · {formatCurrency(place.ticket_price)}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {itinerary.map((day, index) => (
+                  <div key={index} className="border-l-4 border-primary-600 pl-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                      Day {day.day}
+                    </h3>
+
+                    <div className="space-y-3">
+                      {day.morning && (
+                        <div className="flex items-start space-x-3">
+                          <div className="w-2 h-2 bg-primary-600 rounded-full mt-2"></div>
+                          <div>
+                            <div className="font-medium text-gray-900">Morning</div>
+                            <div className="text-gray-600">{day.morning}</div>
+                          </div>
+                        </div>
+                      )}
+
+                      {day.afternoon && (
+                        <div className="flex items-start space-x-3">
+                          <div className="w-2 h-2 bg-primary-600 rounded-full mt-2"></div>
+                          <div>
+                            <div className="font-medium text-gray-900">Afternoon</div>
+                            <div className="text-gray-600">{day.afternoon}</div>
+                          </div>
+                        </div>
+                      )}
+
+                      {day.evening && (
+                        <div className="flex items-start space-x-3">
+                          <div className="w-2 h-2 bg-primary-600 rounded-full mt-2"></div>
+                          <div>
+                            <div className="font-medium text-gray-900">Evening</div>
+                            <div className="text-gray-600">{day.evening}</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Travel Info */}
             <div className="mt-8 p-4 bg-blue-50 rounded-lg">

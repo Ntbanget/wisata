@@ -168,11 +168,11 @@ INSERT INTO tourist_places (name, city_id, ticket_price, category, lat, lng, ima
 -- ===== Magelang =====
 INSERT INTO tourist_places (name, city_id, ticket_price, category, lat, lng, image_url, description) VALUES
 ('Candi Borobudur',                   3, 50000, 'Historical', -7.6079, 110.2038, 'https://example.com/borobudur.jpg',   'UNESCO World Heritage Buddhist temple'),
-('Candi Mendut',                      3, 15000, 'Historical', -7.6045, 110.2304, 'https://example.com/mendut.jpg',      'Buddhist temple east of Borobudur'),
-('Candi Pawon',                       3, 10000, 'Historical', -7.6063, 110.2206, 'https://example.com/pawon.jpg',       'Small temple between Mendut and Borobudur'),
-('Ketep Pass',                        3, 20000, 'Nature',     -7.5183, 110.3678, 'https://example.com/ketep.jpg',       'Mountain viewpoint of Merapi & Merbabu'),
-('Taman Kyai Langgeng',               3, 25000, 'Park',       -7.4917, 110.2163, 'https://example.com/kyai.jpg',        'City park with playground and zoo'),
-('Punthuk Setumbu',                   3, 20000, 'Nature',     -7.6038, 110.1750, 'https://example.com/setumbu.jpg',     'Sunrise viewpoint over Borobudur valley'),
+('Candi Mendut',                      3, 15000, 'Historical', -7.6048, 110.2300, 'https://example.com/mendut.jpg',      'Buddhist temple east of Borobudur'),
+('Candi Pawon',                       3, 10000, 'Historical', -7.6061, 110.2196, 'https://example.com/pawon.jpg',       'Small temple between Mendut and Borobudur'),
+('Ketep Pass',                        3, 20000, 'Nature',     -7.4953, 110.3815, 'https://example.com/ketep.jpg',       'Mountain viewpoint of Merapi & Merbabu'),
+('Taman Kyai Langgeng',               3, 25000, 'Park',       -7.4834, 110.2089, 'https://example.com/kyai.jpg',        'City park with playground and zoo'),
+('Punthuk Setumbu',                   3, 20000, 'Nature',     -7.6108, 110.1813, 'https://example.com/setumbu.jpg',     'Sunrise viewpoint over Borobudur valley'),
 ('Gereja Ayam (Bukit Rhema)',         3, 30000, 'Cultural',   -7.6011, 110.1761, 'https://example.com/ayam.jpg',        'Chicken-shaped chapel near Borobudur'),
 ('Svargabumi Borobudur',              3, 25000, 'Recreation', -7.6086, 110.2008, 'https://example.com/svarga.jpg',      'Rice-field photo park near Borobudur');
 
@@ -256,19 +256,19 @@ INSERT INTO tourist_places (name, city_id, ticket_price, category, lat, lng, ima
 
 -- ===== Yogyakarta =====
 INSERT INTO tourist_places (name, city_id, ticket_price, category, lat, lng, image_url, description) VALUES
-('Jalan Malioboro',                   12, 0,     'Cultural',   -7.7929, 110.3658, 'https://example.com/malioboro.jpg',     'Iconic shopping street'),
-('Keraton Ngayogyakarta Hadiningrat', 12, 15000, 'Historical', -7.8053, 110.3641, 'https://example.com/keraton-jog.jpg',   'Royal palace of the Sultan'),
-('Taman Sari Water Castle',           12, 15000, 'Historical', -7.8101, 110.3597, 'https://example.com/tamansari.jpg',     'Former royal bathing complex'),
-('Tugu Yogyakarta (Tugu Pal Putih)',  12, 0,     'Monument',   -7.7831, 110.3669, 'https://example.com/tugu-jog.jpg',      'Iconic city landmark'),
-('Candi Prambanan',                   12, 50000, 'Historical', -7.7520, 110.4915, 'https://example.com/prambanan.jpg',     'UNESCO Hindu temple complex'),
-('Pantai Parangtritis',               12, 10000, 'Beach',      -8.0247, 110.3331, 'https://example.com/parangtritis.jpg',  'Famous south-coast beach'),
-('Goa Pindul',                        12, 35000, 'Adventure',  -7.9192, 110.6358, 'https://example.com/pindul.jpg',        'Cave-tubing experience in Gunungkidul'),
-('Hutan Pinus Mangunan',              12, 5000,  'Nature',     -7.9326, 110.4458, 'https://example.com/mangunan.jpg',      'Pine forest with hilltop viewpoints'),
-('Heha Sky View',                     12, 30000, 'Recreation', -7.9094, 110.4625, 'https://example.com/heha.jpg',          'Sky-themed restaurant & photo park'),
-('Alun-Alun Kidul Yogyakarta',        12, 0,     'Cultural',   -7.8125, 110.3636, 'https://example.com/alun-kidul.jpg',    'South square with twin banyans'),
-('Kotagede',                          12, 0,     'Cultural',   -7.8270, 110.3974, 'https://example.com/kotagede.jpg',      'Old silver-craft quarter'),
-('Pantai Drini',                      12, 10000, 'Beach',      -8.1340, 110.5672, 'https://example.com/drini.jpg',         'Sheltered beach in Gunungkidul'),
-('Tebing Breksi',                     12, 10000, 'Nature',     -7.7783, 110.5110, 'https://example.com/breksi.jpg',        'Sandstone cliffs near Prambanan');
+('Jalan Malioboro',                   12, 0,     'Cultural',   -7.7932, 110.3658, 'https://example.com/malioboro.jpg',     'Iconic shopping street'),
+('Keraton Ngayogyakarta Hadiningrat', 12, 15000, 'Historical', -7.8076, 110.3639, 'https://example.com/keraton-jog.jpg',   'Royal palace of the Sultan'),
+('Taman Sari Water Castle',           12, 15000, 'Historical', -7.8087, 110.3601, 'https://example.com/tamansari.jpg',     'Former royal bathing complex'),
+('Tugu Yogyakarta (Tugu Pal Putih)',  12, 0,     'Monument',   -7.7829, 110.3671, 'https://example.com/tugu-jog.jpg',      'Iconic city landmark'),
+('Candi Prambanan',                   12, 50000, 'Historical', -7.7522, 110.4915, 'https://example.com/prambanan.jpg',     'UNESCO Hindu temple complex'),
+('Pantai Parangtritis',               12, 10000, 'Beach',      -8.0273, 110.3370, 'https://example.com/parangtritis.jpg',  'Famous south-coast beach'),
+('Goa Pindul',                        12, 35000, 'Adventure',  -7.9310, 110.6479, 'https://example.com/pindul.jpg',        'Cave-tubing experience in Gunungkidul'),
+('Hutan Pinus Mangunan',              12, 5000,  'Nature',     -7.9229, 110.4341, 'https://example.com/mangunan.jpg',      'Pine forest with hilltop viewpoints'),
+('Heha Sky View',                     12, 30000, 'Recreation', -7.8491, 110.4782, 'https://example.com/heha.jpg',          'Sky-themed restaurant & photo park'),
+('Alun-Alun Kidul Yogyakarta',        12, 0,     'Cultural',   -7.8118, 110.3632, 'https://example.com/alun-kidul.jpg',    'South square with twin banyans'),
+('Kotagede',                          12, 0,     'Cultural',   -7.8183, 110.3979, 'https://example.com/kotagede.jpg',      'Old silver-craft quarter'),
+('Pantai Drini',                      12, 10000, 'Beach',      -8.1381, 110.5784, 'https://example.com/drini.jpg',         'Sheltered beach in Gunungkidul'),
+('Tebing Breksi',                     12, 10000, 'Nature',     -7.7814, 110.5050, 'https://example.com/breksi.jpg',        'Sandstone cliffs near Prambanan');
 
 SELECT
   (SELECT COUNT(*) FROM cities) AS cities,
