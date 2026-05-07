@@ -499,3 +499,17 @@ class PackageGenerator {
 }
 
 module.exports = PackageGenerator;
+// Internal helpers exported for unit tests. Not part of the public API; tests
+// import via `require('.../packageGenerator').__test__`.
+module.exports.__test__ = {
+  buildMalamTimeline,
+  packPlacesByMalamWithTimeCap,
+  splitPlacesByMalam,
+  rankPlacesByPopularity,
+  pickDiversePlaces,
+  haversineKm,
+  driveMinutes,
+  hhmm,
+  visitMin,
+  openingHours,
+};

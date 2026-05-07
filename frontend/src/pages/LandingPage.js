@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, MapPin, Calendar, Users, Star, ArrowRight, Check } from 'lucide-react';
 import { apiService } from '../services/api';
 import { formatCurrency, getRatingStars } from '../utils/helpers';
+import { selectFeaturedCities } from '../utils/popularCities';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
 
@@ -139,27 +140,7 @@ const LandingPage = () => {
     Yogyakarta:  'Tugu Yogyakarta',
   };
 
-  // Curated list of "popular" cities to feature on the home page. We don't
-  // just slice the alphabetical city list because it would surface less iconic
-  // destinations (e.g. Pekalongan/Purwokerto) above must-see spots like
-  // Semarang and Yogyakarta. The names below match the values in the cities
-  // table; missing ones gracefully fall through to whatever the API returns.
-  const POPULAR_CITY_NAMES = [
-    'Semarang',
-    'Yogyakarta',
-    'Magelang',
-    'Surakarta (Solo)',
-    'Wonosobo',
-    'Jepara',
-  ];
-  const featuredCities = POPULAR_CITY_NAMES
-    .map((n) => cities.find((c) => c.name === n))
-    .filter(Boolean);
-  // Fill the row with whatever extra cities we have if the curated set
-  // is short (e.g. fresh DB without all entries seeded).
-  const featuredIds = new Set(featuredCities.map((c) => c.id));
-  const filler = cities.filter((c) => !featuredIds.has(c.id));
-  const citiesToShow = [...featuredCities, ...filler].slice(0, 6);
+  const citiesToShow = selectFeaturedCities(cities, 6);
 
   return (
     <div className="min-h-screen">
