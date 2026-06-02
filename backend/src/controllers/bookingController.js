@@ -106,7 +106,8 @@ class BookingController {
         budget: budgetNum,
         hotel_id: parseInt(hotel_id),
         hotel_price: totalPriceNum - touristPlacesArray.reduce((sum, place) => sum + place.ticket_price, 0),
-        tourist_places: touristPlacesArray
+        tourist_places: touristPlacesArray,
+        user_id: req.user ? req.user.id : null  // Associate booking with logged-in user
       };
 
       // Create booking

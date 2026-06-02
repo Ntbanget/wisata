@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Mail, Phone, CreditCard, Shield, Check } from 'lucide-react';
+import { ArrowLeft, User, Mail, Phone, CreditCard, Shield, Check, Upload, Car, User as UserIcon, Calendar } from 'lucide-react';
 import { apiService } from '../services/api';
 import { useBooking } from '../context/BookingContext';
+import { useAuth } from '../context/AuthContext';
 import { formatCurrency, isValidEmail, getHotelCategoryLabel, getPlaceCategoryIcon } from '../utils/helpers';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
@@ -11,20 +12,45 @@ const CheckoutPage = () => {
   const { packageId } = useParams();
   const navigate = useNavigate();
   const { selectedPackage, setCurrentBooking, addToBookingHistory } = useBooking();
+  const { user, isAuthenticated } = useAuth();
   const [packageData, setPackageData] = useState(null);
   const [formData, setFormData] = useState({
     user_name: '',
     email: '',
-    phone: ''
+    phone: '',
+    people_count: 1,
+    nights: 1,
+    trip_date: '',
+    payment_method: 'transfer',
+    payment_proof: null
   });
+  const [vehicles, setVehicles] = useState([]);
+  const [tourGuides, setTourGuides] = useState([]);
+  const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const [selectedGuide, setSelectedGuide] = useState(null);
   const [errors, setErrors] = useState({});
   const [isProcessing, setIsProcessing] = useState(false);
   const [bookingComplete, setBookingComplete] = useState(false);
   const [bookingId, setBookingId] = useState(null);
+  const [uploadingProof, setUploadingProof] = useState(false);
 
   useEffect(() => {
     loadPackageData();
+    loadVehicles();
+    loadTourGuides();
   }, [packageId]);
+
+  // Pre-fill user data if authenticated
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      setFormData(prev => ({
+        ...prev,
+        user_name: user.name || prev.user_name,
+        email: user.email || prev.email,
+        phone: user.phone || prev.phone
+      }));
+    }
+  }, [isAuthenticated, user]);
 
   const loadPackageData = () => {
     const numericId = parseInt(packageId);
@@ -67,6 +93,53 @@ const CheckoutPage = () => {
     navigate('/packages');
   };
 
+  const loadVehicles = async () => {
+    try {
+      const response = await apiService.getAllVehicles();
+      setVehicles(response.data || []);
+    } catch (error) {
+      console.error('Error loading vehicles:', error);
+    }
+  };
+
+  // Auto-select vehicle based on people count (RULES.md requirement)
+  useEffect(() => {
+    if (vehicles.length > 0 && formData.people_count > 0) {
+      const peopleCount = formData.people_count;
+      let category;
+      
+      if (peopleCount <= 4) {
+        category = 'normal';
+      } else if (peopleCount <= 10) {
+        category = 'hiace';
+      } else if (peopleCount <= 18) {
+        category = 'elf';
+      } else {
+        category = 'bus';
+      }
+      
+      // Find vehicle with matching category and sufficient capacity
+      const recommendedVehicle = vehicles.find(v => 
+        v.category === category && 
+        v.capacity >= peopleCount &&
+        v.available
+      );
+      
+      if (recommendedVehicle) {
+        setSelectedVehicle(recommendedVehicle);
+      }
+    }
+  }, [vehicles, formData.people_count]);
+
+  const loadTourGuides = async () => {
+    try {
+      const response = await apiService.getAllTourGuides();
+      setTourGuides(response.data || []);
+    } catch (error) {
+      console.error('Error loading tour guides:', error);
+    }
+  };
+
   const validateForm = () => {
     const newErrors = {};
 
@@ -84,6 +157,18 @@ const CheckoutPage = () => {
 
     if (formData.phone && formData.phone.length < 10) {
       newErrors.phone = 'Phone number must be at least 10 digits';
+    }
+
+    if (!formData.trip_date) {
+      newErrors.trip_date = 'Trip date is required';
+    }
+
+    if (formData.people_count < 1) {
+      newErrors.people_count = 'At least 1 person is required';
+    }
+
+    if (formData.nights < 1) {
+      newErrors.nights = 'At least 1 night is required';
     }
 
     setErrors(newErrors);
@@ -122,9 +207,29 @@ const CheckoutPage = () => {
     setErrors({});
 
     try {
+      // Upload payment proof if provided
+      let paymentProofUrl = null;
+      if (formData.payment_proof) {
+        setUploadingProof(true);
+        try {
+          const uploadResponse = await apiService.uploadPaymentProof(formData.payment_proof);
+          paymentProofUrl = uploadResponse.file_url;
+        } catch (uploadError) {
+          setErrors({ general: 'Failed to upload payment proof. Please try again.' });
+          setIsProcessing(false);
+          setUploadingProof(false);
+          return;
+        }
+        setUploadingProof(false);
+      }
+
+      // Calculate total rooms based on people count (1 room = 2 people max)
+      const totalRooms = Math.ceil(formData.people_count / 2);
+
       const bookingData = {
         user_name: formData.user_name.trim(),
         email: formData.email.trim().toLowerCase(),
+        phone: formData.phone ? formData.phone.trim() : null,
         city_id: packageData.hotel.city_id,
         total_price: packageData.total_price,
         budget: packageData.budget,
@@ -132,10 +237,34 @@ const CheckoutPage = () => {
         tourist_places: packageData.tourist_places.map(place => ({
           id: place.id,
           ticket_price: place.ticket_price
-        }))
+        })),
+        user_id: isAuthenticated ? user.id : null,
+        vehicle_id: selectedVehicle ? selectedVehicle.id : null,
+        guide_id: selectedGuide ? selectedGuide.id : null,
+        payment_method: formData.payment_method,
+        payment_proof: paymentProofUrl,
+        trip_date: formData.trip_date,
+        nights: formData.nights,
+        total_rooms: totalRooms,
+        people_count: formData.people_count
       };
 
       const response = await apiService.createBooking(bookingData);
+      
+      // If payment proof was uploaded, create payment record
+      if (paymentProofUrl && response.data && response.data.id) {
+        try {
+          await apiService.createPayment({
+            booking_id: response.data.id,
+            user_id: isAuthenticated ? user.id : null,
+            amount: packageData.total_price,
+            payment_method: formData.payment_method,
+            proof_image: paymentProofUrl
+          });
+        } catch (paymentError) {
+          console.error('Error creating payment record:', paymentError);
+        }
+      }
       
       // Update booking context
       setCurrentBooking(response.data);
@@ -148,8 +277,15 @@ const CheckoutPage = () => {
       setFormData({
         user_name: '',
         email: '',
-        phone: ''
+        phone: '',
+        people_count: 1,
+        nights: 1,
+        trip_date: '',
+        payment_method: 'transfer',
+        payment_proof: null
       });
+      setSelectedVehicle(null);
+      setSelectedGuide(null);
       
     } catch (error) {
       setErrors({ 
@@ -157,6 +293,7 @@ const CheckoutPage = () => {
       });
     } finally {
       setIsProcessing(false);
+      setUploadingProof(false);
     }
   };
 
@@ -313,6 +450,199 @@ const CheckoutPage = () => {
                   </div>
                   {errors.phone && (
                     <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
+                  )}
+                </div>
+
+                {/* Trip Details Section */}
+                <div className="border-t border-gray-200 pt-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Trip Details</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Number of People *
+                      </label>
+                      <div className="relative">
+                        <UserIcon className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                        <input
+                          type="number"
+                          name="people_count"
+                          value={formData.people_count}
+                          onChange={handleInputChange}
+                          min="1"
+                          className="input-field pl-10"
+                          placeholder="1"
+                          required
+                        />
+                      </div>
+                      {errors.people_count && (
+                        <p className="mt-1 text-sm text-red-600">{errors.people_count}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Number of Nights *
+                      </label>
+                      <div className="relative">
+                        <Calendar className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                        <input
+                          type="number"
+                          name="nights"
+                          value={formData.nights}
+                          onChange={handleInputChange}
+                          min="1"
+                          className="input-field pl-10"
+                          placeholder="1"
+                          required
+                        />
+                      </div>
+                      {errors.nights && (
+                        <p className="mt-1 text-sm text-red-600">{errors.nights}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Trip Date *
+                      </label>
+                      <div className="relative">
+                        <Calendar className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                        <input
+                          type="date"
+                          name="trip_date"
+                          value={formData.trip_date}
+                          onChange={handleInputChange}
+                          min={new Date().toISOString().split('T')[0]}
+                          className="input-field pl-10"
+                          required
+                        />
+                      </div>
+                      {errors.trip_date && (
+                        <p className="mt-1 text-sm text-red-600">{errors.trip_date}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <p className="mt-2 text-sm text-gray-500">
+                    * Rooms will be automatically calculated (1 room = 2 people max)
+                  </p>
+                </div>
+
+                {/* Vehicle Selection */}
+                <div className="border-t border-gray-200 pt-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Vehicle Selection (Optional)</h3>
+                  <div className="relative">
+                    <Car className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                    <select
+                      value={selectedVehicle ? selectedVehicle.id : ''}
+                      onChange={(e) => {
+                        const vehicle = vehicles.find(v => v.id === parseInt(e.target.value));
+                        setSelectedVehicle(vehicle || null);
+                      }}
+                      className="input-field pl-10"
+                    >
+                      <option value="">Select a vehicle (optional)</option>
+                      {vehicles.map(vehicle => (
+                        <option key={vehicle.id} value={vehicle.id}>
+                          {vehicle.name} - {vehicle.category} (Capacity: {vehicle.capacity}) - {formatCurrency(vehicle.price_per_day)}/day
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {selectedVehicle && (
+                    <p className="mt-2 text-sm text-gray-600">
+                      Selected: {selectedVehicle.name} - {formatCurrency(selectedVehicle.price_per_day)}/day
+                    </p>
+                  )}
+                </div>
+
+                {/* Tour Guide Selection */}
+                <div className="border-t border-gray-200 pt-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Tour Guide Selection (Optional)</h3>
+                  <div className="relative">
+                    <UserIcon className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                    <select
+                      value={selectedGuide ? selectedGuide.id : ''}
+                      onChange={(e) => {
+                        const guide = tourGuides.find(g => g.id === parseInt(e.target.value));
+                        setSelectedGuide(guide || null);
+                      }}
+                      className="input-field pl-10"
+                    >
+                      <option value="">Select a tour guide (optional)</option>
+                      {tourGuides.map(guide => (
+                        <option key={guide.id} value={guide.id}>
+                          {guide.name} - {guide.specialization} - {formatCurrency(guide.price_per_day)}/day
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {selectedGuide && (
+                    <p className="mt-2 text-sm text-gray-600">
+                      Selected: {selectedGuide.name} - {formatCurrency(selectedGuide.price_per_day)}/day
+                    </p>
+                  )}
+                </div>
+
+                {/* Payment Method */}
+                <div className="border-t border-gray-200 pt-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Payment Method</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    {['transfer', 'cash', 'ewallet', 'credit_card'].map(method => (
+                      <label
+                        key={method}
+                        className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-colors ${
+                          formData.payment_method === method
+                            ? 'border-indigo-500 bg-indigo-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="payment_method"
+                          value={method}
+                          checked={formData.payment_method === method}
+                          onChange={handleInputChange}
+                          className="mr-3"
+                        />
+                        <span className="capitalize">{method}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Payment Proof Upload */}
+                <div className="border-t border-gray-200 pt-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Payment Proof</h3>
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                    <input
+                      type="file"
+                      id="payment_proof"
+                      accept="image/*,.pdf"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          setFormData(prev => ({ ...prev, payment_proof: file }));
+                        }
+                      }}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="payment_proof"
+                      className="cursor-pointer"
+                    >
+                      <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                      <p className="text-sm text-gray-600 mb-2">
+                        {formData.payment_proof ? formData.payment_proof.name : 'Click to upload payment proof'}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        Accepts: Images (JPG, PNG, GIF) and PDF (Max 5MB)
+                      </p>
+                    </label>
+                  </div>
+                  {uploadingProof && (
+                    <p className="mt-2 text-sm text-indigo-600">Uploading payment proof...</p>
                   )}
                 </div>
 

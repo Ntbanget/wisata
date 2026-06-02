@@ -9,6 +9,11 @@ const packagesRoutes = require('./src/routes/packages');
 const bookingRoutes = require('./src/routes/booking');
 const hotelsRoutes = require('./src/routes/hotels');
 const touristPlacesRoutes = require('./src/routes/touristPlaces');
+const authRoutes = require('./src/routes/auth');
+const vehiclesRoutes = require('./src/routes/vehicles');
+const tourGuidesRoutes = require('./src/routes/tourGuides');
+const paymentsRoutes = require('./src/routes/payments');
+const adminRoutes = require('./src/routes/admin');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -42,6 +47,11 @@ app.use('/api/packages', packagesRoutes);
 app.use('/api/booking', bookingRoutes);
 app.use('/api/hotels', hotelsRoutes);
 app.use('/api/tourist-places', touristPlacesRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/vehicles', vehiclesRoutes);
+app.use('/api/tour-guides', tourGuidesRoutes);
+app.use('/api/payments', paymentsRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

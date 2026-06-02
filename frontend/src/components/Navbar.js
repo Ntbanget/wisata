@@ -77,6 +77,13 @@ const Navbar = () => {
             </button>
             
             <button
+              onClick={() => handleNavigation('/admin/login')}
+              className="text-sm text-gray-600 hover:text-indigo-600 transition-colors"
+            >
+              Admin
+            </button>
+            
+            <button
               onClick={() => handleNavigation('/packages')}
               className="btn-primary"
             >
@@ -127,6 +134,12 @@ const Navbar = () => {
               ))}
               
               <div className="pt-3 border-t border-gray-200">
+                <button
+                  onClick={() => handleNavigation('/admin/login')}
+                  className="w-full text-left px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Admin Portal
+                </button>
                 <button
                   onClick={() => handleNavigation('/packages')}
                   className="w-full btn-primary"

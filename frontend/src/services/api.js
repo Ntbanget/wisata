@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5004/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -12,7 +12,11 @@ const api = axios.create({
 // Request interceptor
 api.interceptors.request.use(
   (config) => {
-    // Add any request modifications here
+    // Add JWT token to headers if available
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     return config;
   },
   (error) => {
@@ -33,8 +37,12 @@ api.interceptors.response.use(
       
       switch (status) {
         case 401:
-          // Unauthorized - handle token refresh or logout
-          console.error('Unauthorized access');
+          // Unauthorized - clear token and redirect to login
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login';
+          }
           break;
         case 403:
           // Forbidden
@@ -81,6 +89,7 @@ export const apiService = {
   calculateCustomPackage: (data) => api.post('/packages/custom', data),
   validatePackage: (data) => api.post('/packages/validate', data),
   getBudgetBreakdown: (budget) => api.get('/packages/budget-breakdown', { params: { budget } }),
+  getAllPackages: (params) => api.get('/packages', { params }),
 
   // Bookings
   createBooking: (data) => api.post('/booking', data),
@@ -103,6 +112,51 @@ export const apiService = {
   getAllTouristPlaces: (params) => api.get('/tourist-places', { params }),
   getTouristPlacesByCity: (cityId, params) => api.get(`/tourist-places/city/${cityId}`, { params }),
   getTouristPlaceById: (id) => api.get(`/tourist-places/${id}`),
+
+  // Vehicles
+  getAllVehicles: (params) => api.get('/vehicles', { params }),
+  getVehicleById: (id) => api.get(`/vehicles/${id}`),
+  getVehiclesByCapacity: (minCapacity, maxCapacity) => api.get(`/vehicles/capacity/${minCapacity}/${maxCapacity}`),
+  getRecommendedVehicle: (peopleCount) => api.get('/vehicles/recommend', { params: { people_count: peopleCount } }),
+
+  // Tour Guides
+  getAllTourGuides: (params) => api.get('/tour-guides', { params }),
+  getTourGuideById: (id) => api.get(`/tour-guides/${id}`),
+  getTourGuidesBySpecialization: (specialization) => api.get(`/tour-guides/specialization/${specialization}`),
+  getTopRatedTourGuides: (limit = 5) => api.get('/tour-guides/top-rated', { params: { limit } }),
+
+  // Payments
+  createPayment: (data) => api.post('/payments', data),
+  getPaymentById: (id) => api.get(`/payments/${id}`),
+  getPaymentsByBookingId: (bookingId) => api.get(`/payments/booking/${bookingId}`),
+  getMyPayments: (params) => api.get('/payments/my-payments', { params }),
+  uploadPaymentProof: (file) => {
+    const formData = new FormData();
+    formData.append('payment_proof', file);
+    return api.post('/payments/upload-proof', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  },
+
+  // Authentication
+  login: (email, password) => api.post('/auth/login', { email, password }),
+  adminLogin: (email, password) => api.post('/auth/admin/login', { email, password }),
+  register: (name, email, password, phone) => api.post('/auth/register', { name, email, password, phone }),
+  getProfile: () => api.get('/auth/profile'),
+  updateProfile: (data) => api.put('/auth/profile', data),
+  changePassword: (currentPassword, newPassword) => api.put('/auth/change-password', { current_password: currentPassword, new_password: newPassword }),
+
+  // Admin
+  getAdminDashboard: (params) => api.get('/admin/dashboard', { params }),
+  getAdminBookings: (params) => api.get('/admin/bookings', { params }),
+  getAdminPayments: (params) => api.get('/admin/payments', { params }),
+  verifyPayment: (id, status) => api.put(`/admin/payments/${id}/verify`, { status }),
+  getAdminCustomers: (params) => api.get('/admin/customers', { params }),
+  getAdminSmartTrips: (params) => api.get('/admin/smart-trips', { params }),
+  updateSmartTripStatus: (id, status) => api.put(`/admin/smart-trips/${id}/status`, { status }),
+  getAnalytics: (params) => api.get('/admin/analytics', { params }),
 
   // Health check
   healthCheck: () => api.get('/health'),

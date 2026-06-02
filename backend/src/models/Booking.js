@@ -4,17 +4,25 @@ class Booking {
   // Create new booking with details
   static async create(bookingData) {
     return await transaction(async (connection) => {
-      // Insert booking
+      // Insert booking with new fields
       const bookingSql = `
-        INSERT INTO bookings (user_name, email, city_id, total_price, budget, status)
-        VALUES (?, ?, ?, ?, ?, 'pending')
+        INSERT INTO bookings (user_name, email, city_id, total_price, budget, status, user_id, vehicle_id, guide_id, payment_method, payment_status, trip_date, nights, total_rooms, people_count)
+        VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, 'pending', ?, ?, ?, ?)
       `;
       const [bookingResult] = await connection.execute(bookingSql, [
         bookingData.user_name,
         bookingData.email,
         bookingData.city_id,
         bookingData.total_price,
-        bookingData.budget
+        bookingData.budget,
+        bookingData.user_id || null,
+        bookingData.vehicle_id || null,
+        bookingData.guide_id || null,
+        bookingData.payment_method || 'transfer',
+        bookingData.trip_date || null,
+        bookingData.nights || 1,
+        bookingData.total_rooms || 1,
+        bookingData.people_count || 1
       ]);
       
       const bookingId = bookingResult.insertId;
@@ -64,7 +72,18 @@ class Booking {
         c.name as city_name,
         b.total_price,
         b.budget,
-        b.status,
+        b.status as booking_status,
+        b.user_id,
+        b.vehicle_id,
+        b.guide_id,
+        b.payment_method,
+        b.payment_status,
+        b.payment_proof,
+        b.admin_notes,
+        b.trip_date,
+        b.nights,
+        b.total_rooms,
+        b.people_count,
         b.created_at,
         b.updated_at
       FROM bookings b
@@ -124,7 +143,18 @@ class Booking {
         c.name as city_name,
         b.total_price,
         b.budget,
-        b.status,
+        b.status as booking_status,
+        b.user_id,
+        b.vehicle_id,
+        b.guide_id,
+        b.payment_method,
+        b.payment_status,
+        b.payment_proof,
+        b.admin_notes,
+        b.trip_date,
+        b.nights,
+        b.total_rooms,
+        b.people_count,
         b.created_at,
         b.updated_at
       FROM bookings b
@@ -178,7 +208,18 @@ class Booking {
         c.name as city_name,
         b.total_price,
         b.budget,
-        b.status,
+        b.status as booking_status,
+        b.user_id,
+        b.vehicle_id,
+        b.guide_id,
+        b.payment_method,
+        b.payment_status,
+        b.payment_proof,
+        b.admin_notes,
+        b.trip_date,
+        b.nights,
+        b.total_rooms,
+        b.people_count,
         b.created_at,
         b.updated_at
       FROM bookings b
@@ -214,6 +255,145 @@ class Booking {
     `;
     await query(sql, [status, id]);
     return await this.getById(id);
+  }
+
+  // Update booking payment status
+  static async updatePaymentStatus(id, paymentStatus, adminNotes = null) {
+    const sql = `
+      UPDATE bookings 
+      SET payment_status = ?, admin_notes = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `;
+    await query(sql, [paymentStatus, adminNotes, id]);
+    return await this.getById(id);
+  }
+
+  // Update booking with new fields
+  static async update(id, updateData) {
+    const fields = [];
+    const values = [];
+
+    if (updateData.user_id !== undefined) {
+      fields.push('user_id = ?');
+      values.push(updateData.user_id);
+    }
+    if (updateData.vehicle_id !== undefined) {
+      fields.push('vehicle_id = ?');
+      values.push(updateData.vehicle_id);
+    }
+    if (updateData.guide_id !== undefined) {
+      fields.push('guide_id = ?');
+      values.push(updateData.guide_id);
+    }
+    if (updateData.payment_method !== undefined) {
+      fields.push('payment_method = ?');
+      values.push(updateData.payment_method);
+    }
+    if (updateData.payment_status !== undefined) {
+      fields.push('payment_status = ?');
+      values.push(updateData.payment_status);
+    }
+    if (updateData.payment_proof !== undefined) {
+      fields.push('payment_proof = ?');
+      values.push(updateData.payment_proof);
+    }
+    if (updateData.admin_notes !== undefined) {
+      fields.push('admin_notes = ?');
+      values.push(updateData.admin_notes);
+    }
+    if (updateData.trip_date !== undefined) {
+      fields.push('trip_date = ?');
+      values.push(updateData.trip_date);
+    }
+    if (updateData.nights !== undefined) {
+      fields.push('nights = ?');
+      values.push(updateData.nights);
+    }
+    if (updateData.total_rooms !== undefined) {
+      fields.push('total_rooms = ?');
+      values.push(updateData.total_rooms);
+    }
+    if (updateData.people_count !== undefined) {
+      fields.push('people_count = ?');
+      values.push(updateData.people_count);
+    }
+
+    if (fields.length === 0) {
+      return await this.getById(id);
+    }
+
+    fields.push('updated_at = CURRENT_TIMESTAMP');
+    values.push(id);
+
+    const sql = 'UPDATE bookings SET ' + fields.join(', ') + ' WHERE id = ?';
+    await query(sql, values);
+    return await this.getById(id);
+  }
+
+  // Get bookings by user ID (new method for authenticated users)
+  static async getByUserId(userId, page = 1, limit = 20, status = null) {
+    const offset = (page - 1) * limit;
+    
+    let sql = `
+      SELECT 
+        b.id,
+        b.user_name,
+        b.email,
+        b.city_id,
+        c.name as city_name,
+        b.total_price,
+        b.budget,
+        b.status as booking_status,
+        b.user_id,
+        b.vehicle_id,
+        b.guide_id,
+        b.payment_method,
+        b.payment_status,
+        b.payment_proof,
+        b.admin_notes,
+        b.trip_date,
+        b.nights,
+        b.total_rooms,
+        b.people_count,
+        b.created_at,
+        b.updated_at
+      FROM bookings b
+      JOIN cities c ON b.city_id = c.id
+      WHERE b.user_id = ?
+    `;
+    const params = [userId];
+    
+    if (status) {
+      sql += ' AND b.status = ?';
+      params.push(status);
+    }
+    
+    sql += ' ORDER BY b.created_at DESC LIMIT ? OFFSET ?';
+    params.push(limit, offset);
+    
+    const bookings = await query(sql, params);
+    
+    // Get total count
+    let countSql = 'SELECT COUNT(*) as total FROM bookings b WHERE b.user_id = ?';
+    const countParams = [userId];
+    
+    if (status) {
+      countSql += ' AND b.status = ?';
+      countParams.push(status);
+    }
+    
+    const countResult = await query(countSql, countParams);
+    const total = countResult[0].total;
+    
+    return {
+      bookings,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
   }
 
   // Cancel booking
