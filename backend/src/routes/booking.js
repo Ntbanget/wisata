@@ -12,8 +12,8 @@ router.post('/', authenticate, BookingController.createBooking);
 // GET /api/booking - Get all bookings (admin only)
 router.get('/', authenticate, adminOnly, BookingController.getAllBookings);
 
-// GET /api/booking/email - Get bookings by user email (public for now, will be deprecated)
-router.get('/email', BookingController.getBookingsByEmail);
+// GET /api/booking/email - Get bookings by user email (requires authentication)
+router.get('/email', authenticate, BookingController.getBookingsByEmail);
 
 // GET /api/booking/stats - Get booking statistics (admin only)
 router.get('/stats', authenticate, adminOnly, BookingController.getBookingStats);
@@ -21,8 +21,8 @@ router.get('/stats', authenticate, adminOnly, BookingController.getBookingStats)
 // GET /api/booking/popular - Get popular destinations (public)
 router.get('/popular', BookingController.getPopularDestinations);
 
-// GET /api/booking/:id - Get booking by ID (public for now)
-router.get('/:id', BookingController.getBookingById);
+// GET /api/booking/:id - Get booking by ID (requires authentication)
+router.get('/:id', authenticate, BookingController.getBookingById);
 
 // PUT /api/booking/:id/status - Update booking status (admin only)
 router.put('/:id/status', authenticate, adminOnly, BookingController.updateBookingStatus);

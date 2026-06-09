@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const validator = require('validator');
 const User = require('../models/User');
 
 class AuthController {
@@ -13,6 +14,38 @@ class AuthController {
         return res.status(400).json({
           error: 'Missing required fields',
           message: 'Name, email, and password are required'
+        });
+      }
+
+      // Validate name length
+      if (!validator.isLength(name, { min: 2, max: 100 })) {
+        return res.status(400).json({
+          error: 'Invalid name',
+          message: 'Name must be between 2 and 100 characters'
+        });
+      }
+
+      // Validate email format
+      if (!validator.isEmail(email)) {
+        return res.status(400).json({
+          error: 'Invalid email',
+          message: 'Please provide a valid email address'
+        });
+      }
+
+      // Validate password strength
+      if (!validator.isLength(password, { min: 6 })) {
+        return res.status(400).json({
+          error: 'Invalid password',
+          message: 'Password must be at least 6 characters'
+        });
+      }
+
+      // Validate phone format if provided
+      if (phone && !validator.isLength(phone, { min: 10, max: 20 })) {
+        return res.status(400).json({
+          error: 'Invalid phone',
+          message: 'Phone number must be between 10 and 20 characters'
         });
       }
 
@@ -72,6 +105,22 @@ class AuthController {
         return res.status(400).json({
           error: 'Missing credentials',
           message: 'Email and password are required'
+        });
+      }
+
+      // Validate email format
+      if (!validator.isEmail(email)) {
+        return res.status(400).json({
+          error: 'Invalid email',
+          message: 'Please provide a valid email address'
+        });
+      }
+
+      // Validate password length
+      if (!validator.isLength(password, { min: 6 })) {
+        return res.status(400).json({
+          error: 'Invalid password',
+          message: 'Password must be at least 6 characters'
         });
       }
 
@@ -135,6 +184,22 @@ class AuthController {
         return res.status(400).json({
           error: 'Missing credentials',
           message: 'Email and password are required'
+        });
+      }
+
+      // Validate email format
+      if (!validator.isEmail(email)) {
+        return res.status(400).json({
+          error: 'Invalid email',
+          message: 'Please provide a valid email address'
+        });
+      }
+
+      // Validate password length
+      if (!validator.isLength(password, { min: 6 })) {
+        return res.status(400).json({
+          error: 'Invalid password',
+          message: 'Password must be at least 6 characters'
         });
       }
 
@@ -220,8 +285,24 @@ class AuthController {
       const userId = req.user.id;
 
       const updateData = {};
-      if (name) updateData.name = name;
-      if (phone !== undefined) updateData.phone = phone;
+      if (name) {
+        if (!validator.isLength(name, { min: 2, max: 100 })) {
+          return res.status(400).json({
+            error: 'Invalid name',
+            message: 'Name must be between 2 and 100 characters'
+          });
+        }
+        updateData.name = name;
+      }
+      if (phone !== undefined) {
+        if (phone && !validator.isLength(phone, { min: 10, max: 20 })) {
+          return res.status(400).json({
+            error: 'Invalid phone',
+            message: 'Phone number must be between 10 and 20 characters'
+          });
+        }
+        updateData.phone = phone;
+      }
 
       await User.update(userId, updateData);
 
@@ -311,6 +392,38 @@ class AuthController {
         });
       }
 
+      // Validate name length
+      if (!validator.isLength(name, { min: 2, max: 100 })) {
+        return res.status(400).json({
+          error: 'Invalid name',
+          message: 'Name must be between 2 and 100 characters'
+        });
+      }
+
+      // Validate email format
+      if (!validator.isEmail(email)) {
+        return res.status(400).json({
+          error: 'Invalid email',
+          message: 'Please provide a valid email address'
+        });
+      }
+
+      // Validate password strength
+      if (!validator.isLength(password, { min: 6 })) {
+        return res.status(400).json({
+          error: 'Invalid password',
+          message: 'Password must be at least 6 characters'
+        });
+      }
+
+      // Validate phone format if provided
+      if (phone && !validator.isLength(phone, { min: 10, max: 20 })) {
+        return res.status(400).json({
+          error: 'Invalid phone',
+          message: 'Phone number must be between 10 and 20 characters'
+        });
+      }
+
       // Check if user already exists
       const existingUser = await User.getByEmail(email);
       if (existingUser) {
@@ -382,10 +495,10 @@ class AuthController {
       const { id } = req.params;
       const { role } = req.body;
 
-      if (!['user', 'admin', 'staff'].includes(role)) {
+      if (!['user', 'admin'].includes(role)) {
         return res.status(400).json({
           error: 'Invalid role',
-          message: 'Role must be one of: user, admin, staff'
+          message: 'Role must be one of: user, admin'
         });
       }
 

@@ -11,9 +11,9 @@ router.post('/', authenticate, PaymentController.createPayment);
 router.get('/my-payments', authenticate, PaymentController.getMyPayments);
 router.post('/upload-proof', authenticate, upload.single('payment_proof'), PaymentController.uploadPaymentProof);
 
-// Public routes (read-only)
-router.get('/booking/:bookingId', PaymentController.getPaymentsByBookingId);
-router.get('/:id', PaymentController.getPaymentById);
+// Protected routes (read-only) - requires authentication
+router.get('/booking/:bookingId', authenticate, PaymentController.getPaymentsByBookingId);
+router.get('/:id', authenticate, PaymentController.getPaymentById);
 
 // Admin routes
 router.get('/stats', authenticate, adminOnly, PaymentController.getPaymentStats);

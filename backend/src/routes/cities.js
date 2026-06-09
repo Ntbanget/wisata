@@ -1,5 +1,7 @@
 const express = require('express');
 const CityController = require('../controllers/cityController');
+const { authenticate, adminOnly } = require('../middleware/auth');
+const { adminOnly: adminOnlyRole } = require('../middleware/role');
 
 const router = express.Router();
 
@@ -13,12 +15,12 @@ router.get('/:id', CityController.getCityById);
 router.get('/:id/stats', CityController.getCityWithStats);
 
 // POST /api/cities - Create new city (admin only)
-router.post('/', CityController.createCity);
+router.post('/', authenticate, adminOnlyRole, CityController.createCity);
 
 // PUT /api/cities/:id - Update city (admin only)
-router.put('/:id', CityController.updateCity);
+router.put('/:id', authenticate, adminOnlyRole, CityController.updateCity);
 
 // DELETE /api/cities/:id - Delete city (admin only)
-router.delete('/:id', CityController.deleteCity);
+router.delete('/:id', authenticate, adminOnlyRole, CityController.deleteCity);
 
 module.exports = router;
