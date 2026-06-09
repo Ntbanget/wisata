@@ -145,16 +145,10 @@ class Booking {
         b.budget,
         b.status as booking_status,
         b.user_id,
-        b.vehicle_id,
-        b.guide_id,
         b.payment_method,
         b.payment_status,
-        b.payment_proof,
-        b.admin_notes,
-        b.trip_date,
-        b.nights,
-        b.total_rooms,
-        b.people_count,
+        b.payment_proof_url as payment_proof,
+        b.payment_notes as admin_notes,
         b.created_at,
         b.updated_at
       FROM bookings b

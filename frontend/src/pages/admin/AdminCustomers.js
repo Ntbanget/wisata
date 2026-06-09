@@ -83,7 +83,6 @@ const AdminCustomers = () => {
               <option value="all">All Roles</option>
               <option value="user">User</option>
               <option value="admin">Admin</option>
-              <option value="staff">Staff</option>
             </select>
           </div>
         </div>
@@ -142,7 +141,6 @@ const AdminCustomers = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-3 py-1 text-xs font-medium rounded-full ${
                       customer.role === 'admin' ? 'bg-purple-100 text-purple-700' :
-                      customer.role === 'staff' ? 'bg-blue-100 text-blue-700' :
                       'bg-gray-100 text-gray-700'
                     }`}>
                       {customer.role}

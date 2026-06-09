@@ -120,8 +120,7 @@ class User {
       SELECT
         COUNT(*) as total_users,
         SUM(CASE WHEN role = 'user' THEN 1 ELSE 0 END) as users,
-        SUM(CASE WHEN role = 'admin' THEN 1 ELSE 0 END) as admins,
-        SUM(CASE WHEN role = 'staff' THEN 1 ELSE 0 END) as staff
+        SUM(CASE WHEN role = 'admin' THEN 1 ELSE 0 END) as admins
       FROM users
     `;
     const result = await query(sql);

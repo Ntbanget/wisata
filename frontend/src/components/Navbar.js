@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, MapPin, Phone, Mail } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -9,6 +10,7 @@ const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { isDark, toggleTheme } = useTheme();
+  const { user, token, logout } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -76,16 +78,50 @@ const Navbar = () => {
               {isDark ? '🌙' : '☀️'}
             </button>
             
+            {token && user ? (
+              <>
+                {user.role === 'admin' ? (
+                  <button
+                    onClick={() => handleNavigation('/admin/dashboard')}
+                    className="text-sm text-gray-600 hover:text-indigo-600 transition-colors"
+                  >
+                    Admin Panel
+                  </button>
+                ) : (
+                  <>
+                    <span className="text-sm text-gray-600">
+                      Halo, {user.name}
+                    </span>
+                    <button
+                      onClick={() => {
+                        logout();
+                        handleNavigation('/');
+                      }}
+                      className="text-sm text-red-500 hover:text-red-700 transition-colors"
+                    >
+                      Logout
+                    </button>
+                  </>
+                )}
+              </>
+            ) : (
+              <button
+                onClick={() => handleNavigation('/login')}
+                className="text-sm text-gray-600 hover:text-indigo-600 transition-colors"
+              >
+                Login
+              </button>
+            )}
+
             <button
-              onClick={() => handleNavigation('/admin/login')}
-              className="text-sm text-gray-600 hover:text-indigo-600 transition-colors"
-            >
-              Admin
-            </button>
-            
-            <button
-              onClick={() => handleNavigation('/packages')}
-              className="btn-primary"
+              onClick={() => {
+                if (token && user) {
+                  handleNavigation('/customer/home');
+                } else {
+                  handleNavigation('/login');
+                }
+              }}
+              className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm"
             >
               Find Trip
             </button>

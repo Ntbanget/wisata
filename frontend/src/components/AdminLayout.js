@@ -44,14 +44,14 @@ const AdminLayout = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50">
       {/* Mobile menu button */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-50">
+      <div className="lg:hidden fixed top-0 left-0 right-0 bg-slate-900 z-50">
         <div className="flex items-center justify-between px-4 py-3">
-          <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
+          <h1 className="text-xl font-bold text-white">Admin Panel</h1>
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 hover:bg-gray-100 rounded-lg"
+            className="p-2 hover:bg-slate-800 rounded-lg text-white"
           >
             {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
@@ -59,12 +59,12 @@ const AdminLayout = () => {
       </div>
 
       {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:static lg:inset-0`}>
+      <aside className={`fixed inset-y-0 left-0 z-40 w-64 bg-slate-900 transform transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
         <div className="flex flex-col h-full pt-16 lg:pt-0">
           {/* Logo */}
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
-            <p className="text-sm text-gray-600">Wisata Management</p>
+          <div className="px-6 py-6 border-b border-slate-700">
+            <h1 className="text-xl font-bold text-white">Admin Panel</h1>
+            <p className="text-sm text-slate-400 mt-1">Wisata Management</p>
           </div>
 
           {/* Navigation */}
@@ -79,8 +79,8 @@ const AdminLayout = () => {
                   onClick={() => setSidebarOpen(false)}
                   className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
                     isActive
-                      ? 'bg-indigo-50 text-indigo-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                   }`}
                 >
                   <Icon className="w-5 h-5" />
@@ -91,17 +91,17 @@ const AdminLayout = () => {
           </nav>
 
           {/* User Info & Logout */}
-          <div className="px-4 py-4 border-t border-gray-200">
+          <div className="px-4 py-4 border-t border-slate-700">
             <div className="mb-4">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-                  <User className="w-5 h-5 text-indigo-600" />
+                <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center">
+                  <User className="w-5 h-5 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
+                  <p className="text-sm font-medium text-white truncate">
                     {user?.name || 'Admin'}
                   </p>
-                  <p className="text-xs text-gray-500 truncate">
+                  <p className="text-xs text-slate-400 truncate">
                     {user?.email || 'admin@wisata.com'}
                   </p>
                 </div>
@@ -109,7 +109,7 @@ const AdminLayout = () => {
             </div>
             <button
               onClick={handleLogout}
-              className="flex items-center space-x-3 w-full px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
+              className="flex items-center space-x-3 w-full px-4 py-3 rounded-lg text-red-400 hover:bg-slate-800 hover:text-red-300 transition-colors"
             >
               <LogOut className="w-5 h-5" />
               <span className="font-medium">Logout</span>
@@ -127,7 +127,7 @@ const AdminLayout = () => {
       )}
 
       {/* Main Content */}
-      <main className="lg:ml-64 pt-16 lg:pt-0">
+      <main className="flex-1 ml-0 lg:ml-64 pt-16 lg:pt-0 overflow-y-auto bg-gray-50">
         <Outlet />
       </main>
     </div>

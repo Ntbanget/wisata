@@ -28,11 +28,15 @@ class AdminController {
       res.json({
         success: true,
         data: {
+          total_bookings: bookingStats.total_bookings || 0,
+          total_revenue: bookingStats.total_revenue || 0,
+          total_customers: userStats.users || 0,
+          pending_payments: paymentStats.pending || 0,
           bookings: bookingStats,
           payments: paymentStats,
           users: userStats,
           recent_bookings: recentBookings.bookings,
-          pending_payments: pendingPayments.payments
+          pending_payments_list: pendingPayments.payments
         }
       });
     } catch (error) {

@@ -15,8 +15,15 @@ class PackageController {
         });
       }
 
+      // Convert to string for validator
+      const cityIdStr = String(city_id);
+      const budgetStr = String(budget);
+      const packagesCountStr = String(packages_count);
+      const maxPlacesStr = String(max_places);
+      const nightsStr = String(nights);
+
       // Validate city_id
-      if (!validator.isInt(city_id, { min: 1 })) {
+      if (!validator.isInt(cityIdStr, { min: 1 })) {
         return res.status(400).json({
           success: false,
           error: 'Invalid city_id'
@@ -24,30 +31,33 @@ class PackageController {
       }
 
       // Validate budget
-      const budgetNum = parseFloat(budget);
-      if (!validator.isFloat(budget, { min: 10000, max: 10000000 })) {
+      if (!validator.isFloat(budgetStr, { min: 10000, max: 999999999 })) {
         return res.status(400).json({
           success: false,
-          error: 'Budget must be between 10,000 and 10,000,000'
+          error: 'Budget minimal Rp 10.000'
         });
       }
 
+      // Convert to number for logic
+      const budgetNum = parseFloat(budget);
+      const cityIdNum = parseInt(city_id);
+
       // Validate optional parameters
-      const packagesCount = validator.isInt(packages_count, { min: 1, max: 10 }) 
+      const packagesCount = validator.isInt(packagesCountStr, { min: 1, max: 10 }) 
         ? parseInt(packages_count) 
         : 3;
       
-      const maxPlaces = validator.isInt(max_places, { min: 2, max: 6 }) 
+      const maxPlaces = validator.isInt(maxPlacesStr, { min: 2, max: 6 }) 
         ? parseInt(max_places) 
         : 4;
 
-      const nightsNum = validator.isInt(String(nights), { min: 1, max: 14 })
+      const nightsNum = validator.isInt(nightsStr, { min: 1, max: 14 })
         ? parseInt(nights)
         : 1;
 
       // Generate packages
       const packages = await PackageGenerator.generatePackages(
-        parseInt(city_id),
+        cityIdNum,
         budgetNum,
         {
           packagesCount,
@@ -193,10 +203,10 @@ class PackageController {
 
       // Validate budget
       const budgetNum = parseFloat(budget);
-      if (!validator.isFloat(String(budget), { min: 10000, max: 10000000 })) {
+      if (!validator.isFloat(String(budget), { min: 10000, max: 999999999 })) {
         return res.status(400).json({
           success: false,
-          error: 'Budget must be between 10,000 and 10,000,000'
+          error: 'Budget minimal Rp 10.000'
         });
       }
 
@@ -235,10 +245,10 @@ class PackageController {
 
       // Validate budget
       const budgetNum = parseFloat(budget);
-      if (!validator.isFloat(budget, { min: 10000, max: 10000000 })) {
+      if (!validator.isFloat(budget, { min: 10000, max: 999999999 })) {
         return res.status(400).json({
           success: false,
-          error: 'Budget must be between 10,000 and 10,000,000'
+          error: 'Budget minimal Rp 10.000'
         });
       }
 

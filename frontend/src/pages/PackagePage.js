@@ -21,7 +21,7 @@ const PackagePage = () => {
     loadSearchResults();
   }, []);
 
-  const loadSearchResults = () => {
+  const loadSearchResults = async () => {
     const savedResults = sessionStorage.getItem('searchResults');
     const savedCriteria = sessionStorage.getItem('searchCriteria');
     
@@ -37,7 +37,14 @@ const PackagePage = () => {
         setError('Failed to load search results');
       }
     } else {
-      setError('No search results found. Please start a new search from the home page.');
+      try {
+        const response = await apiService.get('/packages');
+        const data = response.data || response;
+        setPackages(Array.isArray(data) ? data : data.packages || []);
+        setSearchCriteria(null);
+      } catch (err) {
+        setError('Gagal memuat paket wisata. Coba lagi.');
+      }
     }
     
     setIsLoading(false);

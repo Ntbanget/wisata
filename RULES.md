@@ -64,6 +64,41 @@ Flow ini tidak boleh diubah tanpa persetujuan user.
 
 # ROLE SYSTEM
 
+## ACTIVE ROLES (HANYA 2)
+
+1. **user** - Customer biasa
+2. **admin** - Administrator
+
+## LEGACY ROLES (TIDAK DIGUNAKAN)
+
+- staff
+- customer
+- travel_planner
+
+Role legacy dianggap tidak valid dan tidak boleh digunakan.
+
+## ROLE ASSIGNMENT
+
+- Semua user baru: role = user
+- Semua admin: role = admin
+- Tidak boleh membuat role baru tanpa analisis database
+
+## AUTHENTICATION FLOW
+
+Tidak boleh mengubah:
+- Authentication flow yang sudah berjalan
+- Routing login yang sudah berfungsi
+- AuthContext.js
+- LoginPage.js
+- AdminLoginPage.js
+
+## DATABASE RULE
+
+Database aktif adalah source of truth.
+Jangan menggunakan schema.sql lama sebagai referensi utama.
+
+---
+
 ## Guest
 
 Boleh:
@@ -83,7 +118,7 @@ Tidak boleh:
 
 ---
 
-## Customer
+## User (Customer)
 
 Boleh:
 
@@ -117,17 +152,6 @@ Boleh:
 
 PUBLIC
 
-/
-Landing Page
-
-/explore
-Explore Map
-
-/packages
-Paket Wisata
-
-/hotels
-Hotel
 
 /login
 Customer Login

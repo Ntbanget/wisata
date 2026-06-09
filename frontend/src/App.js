@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { BookingProvider } from './context/BookingContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -8,6 +8,7 @@ import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminLayout from './components/AdminLayout';
 import LandingPage from './pages/LandingPage';
+import CustomerHomePage from './pages/customer/CustomerHomePage';
 import PackagePage from './pages/PackagePage';
 import DetailPage from './pages/DetailPage';
 import MapPage from './pages/MapPage';
@@ -49,7 +50,25 @@ const AuthRedirect = () => {
     return <Navigate to="/admin/dashboard" replace />;
   }
   
-  return <Navigate to="/packages" replace />;
+  return <Navigate to="/customer/home" replace />;
+};
+
+// Layout wrapper component to conditionally render Navbar/Footer
+const LayoutWrapper = ({ children }) => {
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith('/admin');
+  
+  if (isAdminRoute) {
+    return <>{children}</>;
+  }
+  
+  return (
+    <>
+      <Navbar />
+      {children}
+      <Footer />
+    </>
+  );
 };
 
 function App() {
@@ -58,71 +77,76 @@ function App() {
       <AuthProvider>
         <BookingProvider>
           <Router>
-            <div className="min-h-screen flex flex-col bg-gray-50">
-              <Navbar />
-              <main className="flex-grow pt-16">
-                <Routes>
-                  <Route path="/" element={<AuthRedirect />} />
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="/admin/login" element={<AdminLoginPage />} />
-                  
-                  {/* Protected User Routes */}
-                  <Route path="/packages" element={
-                    <ProtectedRoute>
-                      <PackagePage />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/detail/:packageId" element={
-                    <ProtectedRoute>
-                      <DetailPage />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/map/:packageId" element={
-                    <ProtectedRoute>
-                      <MapPage />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/explore" element={
-                    <ProtectedRoute>
-                      <ExploreMap />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/checkout/:packageId" element={
-                    <ProtectedRoute>
-                      <CheckoutPage />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/success/:bookingId" element={
-                    <ProtectedRoute>
-                      <SuccessPage />
-                    </ProtectedRoute>
-                  } />
-                  {/* Old /custom route is deprecated. Packages are FIXED; users
-                      who want to build their own trip are sent to Explore Map. */}
-                  <Route path="/custom/:packageId" element={<Navigate to="/explore" replace />} />
-                  
-                  {/* Admin Routes - REQUIRE ADMIN ROLE */}
-                  <Route path="/admin/*" element={
-                    <ProtectedRoute requireAdmin={true}>
-                      <AdminLayout />
-                    </ProtectedRoute>
-                  }>
-                    <Route path="dashboard" element={<AdminDashboard />} />
-                    <Route path="bookings" element={<AdminBookings />} />
-                    <Route path="payments" element={<AdminPayments />} />
-                    <Route path="customers" element={<AdminCustomers />} />
-                    <Route path="destinations" element={<AdminDestinations />} />
-                    <Route path="hotels" element={<AdminHotels />} />
-                    <Route path="vehicles" element={<AdminVehicles />} />
-                    <Route path="tour-guides" element={<AdminTourGuides />} />
-                    <Route path="packages" element={<AdminPackages />} />
-                    <Route path="smart-trips" element={<AdminSmartTrips />} />
-                    <Route path="settings" element={<AdminSettings />} />
-                  </Route>
-                </Routes>
-              </main>
-              <Footer />
-            </div>
+            <LayoutWrapper>
+              <div className="min-h-screen flex flex-col bg-gray-50">
+                <main className="flex-grow pt-16">
+                  <Routes>
+                    <Route path="/" element={<AuthRedirect />} />
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/admin/login" element={<AdminLoginPage />} />
+                    
+                    {/* Protected User Routes */}
+                    <Route path="/customer/home" element={
+                      <ProtectedRoute>
+                        <CustomerHomePage />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/packages" element={
+                      <ProtectedRoute>
+                        <PackagePage />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/detail/:packageId" element={
+                      <ProtectedRoute>
+                        <DetailPage />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/map/:packageId" element={
+                      <ProtectedRoute>
+                        <MapPage />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/explore" element={
+                      <ProtectedRoute>
+                        <ExploreMap />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/checkout/:packageId" element={
+                      <ProtectedRoute>
+                        <CheckoutPage />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/success/:bookingId" element={
+                      <ProtectedRoute>
+                        <SuccessPage />
+                      </ProtectedRoute>
+                    } />
+                    {/* Old /custom route is deprecated. Packages are FIXED; users
+                        who want to build their own trip are sent to Explore Map. */}
+                    <Route path="/custom/:packageId" element={<Navigate to="/explore" replace />} />
+                    
+                    {/* Admin Routes - REQUIRE ADMIN ROLE */}
+                    <Route path="/admin/*" element={
+                      <ProtectedRoute requireAdmin={true}>
+                        <AdminLayout />
+                      </ProtectedRoute>
+                    }>
+                      <Route path="dashboard" element={<AdminDashboard />} />
+                      <Route path="bookings" element={<AdminBookings />} />
+                      <Route path="payments" element={<AdminPayments />} />
+                      <Route path="customers" element={<AdminCustomers />} />
+                      <Route path="destinations" element={<AdminDestinations />} />
+                      <Route path="hotels" element={<AdminHotels />} />
+                      <Route path="vehicles" element={<AdminVehicles />} />
+                      <Route path="tour-guides" element={<AdminTourGuides />} />
+                      <Route path="packages" element={<AdminPackages />} />
+                      <Route path="smart-trips" element={<AdminSmartTrips />} />
+                      <Route path="settings" element={<AdminSettings />} />
+                    </Route>
+                  </Routes>
+                </main>
+              </div>
+            </LayoutWrapper>
           </Router>
         </BookingProvider>
       </AuthProvider>

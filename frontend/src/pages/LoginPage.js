@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { User, Mail, Lock, Phone, ArrowRight, Shield } from 'lucide-react';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const { login, register } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
     name: '',
@@ -51,47 +53,38 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!validateForm()) {
-      return;
-    }
-
+    if (!validateForm()) return;
+    
     setIsProcessing(true);
     setErrors({});
 
     try {
       if (isLogin) {
-        const result = await api.login(formData.email, formData.password);
+        const result = await login(formData.email, formData.password);
         if (result.success) {
-          // Users go to home
-          navigate('/');
-        } else {
-          // Check if error is about admin access
-          if (result.error && result.error.includes('Admin')) {
-            setErrors({ general: 'Admins must use the Admin Portal. Please login at /admin/login' });
+          if (result.user.role === 'admin') {
+            navigate('/admin/dashboard');
           } else {
-            setErrors({ general: result.error });
+            navigate('/customer/home');
           }
+        } else {
+          setErrors({ general: result.error || 'Login gagal' });
         }
       } else {
-        const result = await api.register(
+        const result = await register(
           formData.name,
           formData.email,
           formData.password,
           formData.phone
         );
         if (result.success) {
-          navigate('/');
+          navigate('/customer/home');
         } else {
-          setErrors({ general: result.error });
+          setErrors({ general: result.error || 'Registrasi gagal' });
         }
       }
     } catch (error) {
-      // Check if error message indicates admin access issue
-      if (error.error && error.error.includes('Admin')) {
-        setErrors({ general: 'Admins must use the Admin Portal. Please login at /admin/login' });
-      } else {
-        setErrors({ general: error.error || 'Authentication failed. Please try again.' });
-      }
+      setErrors({ general: 'Terjadi kesalahan, coba lagi' });
     } finally {
       setIsProcessing(false);
     }
