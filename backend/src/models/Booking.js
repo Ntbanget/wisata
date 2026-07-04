@@ -3,11 +3,45 @@ const { query, transaction } = require('./database');
 class Booking {
   // Create new booking with details
   static async create(bookingData) {
-    return await transaction(async (connection) => {
-      // Insert booking with new fields
+    try {
+      console.log("=== BOOKING.CREATE() START ===");
+      console.log("bookingData:", JSON.stringify(bookingData, null, 2));
+
+      return await transaction(async (connection) => {
+        // Destructure hotel_id, tourist_places, payment data, and user info
+        const { hotel_id, tourist_places, payment_proof, payment_method, total_price, user_id, user_name, email } = bookingData;
+
+      // Create or get customer
+      let customerId = user_id;
+      if (!customerId && email) {
+        console.log("=== EXECUTING STEP: customer_creation ===");
+        try {
+          const [existingCustomer] = await connection.execute(
+            'SELECT id FROM users WHERE email = ?',
+            [email.toLowerCase()]
+          );
+          if (existingCustomer.length > 0) {
+            customerId = existingCustomer[0].id;
+            console.log("=== CUSTOMER FOUND === customerId:", customerId);
+          } else {
+            const customerSql = `
+              INSERT INTO users (name, email, role, created_at)
+              VALUES (?, ?, 'customer', CURRENT_TIMESTAMP)
+            `;
+            const [customerResult] = await connection.execute(customerSql, [user_name, email.toLowerCase()]);
+            customerId = customerResult.insertId;
+            console.log("=== CUSTOMER CREATED === customerId:", customerId);
+          }
+        } catch (error) {
+          console.error("=== CUSTOMER CREATION FAILED ===", error.message);
+          throw error;
+        }
+      }
+
+      // Insert booking with PENDING_PAYMENT status
       const bookingSql = `
-        INSERT INTO bookings (user_name, email, city_id, total_price, budget, status, user_id, vehicle_id, guide_id, payment_method, payment_status, trip_date, nights, total_rooms, people_count)
-        VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, 'pending', ?, ?, ?, ?)
+        INSERT INTO bookings (user_name, email, city_id, total_price, budget, status, user_id, vehicle_id, guide_id, payment_method, payment_status, payment_proof, trip_date, nights, total_rooms, people_count, vehicle_mode)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', ?, ?, ?, ?, ?, ?)
       `;
       const [bookingResult] = await connection.execute(bookingSql, [
         bookingData.user_name,
@@ -15,56 +49,207 @@ class Booking {
         bookingData.city_id,
         bookingData.total_price,
         bookingData.budget,
-        bookingData.user_id || null,
+        'PENDING_PAYMENT', // Always set to PENDING_PAYMENT initially
+        customerId || null, // Use customerId instead of user_id
         bookingData.vehicle_id || null,
         bookingData.guide_id || null,
         bookingData.payment_method || 'transfer',
+        bookingData.payment_proof || null,
         bookingData.trip_date || null,
         bookingData.nights || 1,
         bookingData.total_rooms || 1,
-        bookingData.people_count || 1
+        bookingData.people_count || 1,
+        bookingData.vehicle_mode || 'automatic'
       ]);
-      
+
       const bookingId = bookingResult.insertId;
-      
+      console.log("=== BOOKING ID GENERATED ===");
+      console.log("bookingId:", bookingId);
+
+      // Validate city_id exists
+      if (bookingData.city_id) {
+        const [cityCheck] = await connection.execute(
+          'SELECT id FROM cities WHERE id = ?',
+          [bookingData.city_id]
+        );
+        if (cityCheck.length === 0) {
+          throw new Error(`City with id ${bookingData.city_id} not found`);
+        }
+      }
+
+      // Validate hotel_id exists
+      if (hotel_id) {
+        const [hotelCheck] = await connection.execute(
+          'SELECT id FROM hotels WHERE id = ?',
+          [hotel_id]
+        );
+        if (hotelCheck.length === 0) {
+          throw new Error(`Hotel with id ${hotel_id} not found`);
+        }
+      }
+
+      // Validate tourist_place_ids exist
+      if (tourist_places && tourist_places.length > 0) {
+        for (const place of tourist_places) {
+          if (place.id) {
+            const [placeCheck] = await connection.execute(
+              'SELECT id FROM tourist_places WHERE id = ?',
+              [place.id]
+            );
+            if (placeCheck.length === 0) {
+              throw new Error(`Tourist place with id ${place.id} not found`);
+            }
+          }
+        }
+      }
+
       // Insert booking details
       const detailSql = `
         INSERT INTO booking_details (booking_id, hotel_id, tourist_place_id, quantity, price_per_item)
         VALUES (?, ?, ?, ?, ?)
       `;
-      
+
       // Insert hotel detail
-      if (bookingData.hotel_id) {
-        await connection.execute(detailSql, [
-          bookingId,
-          bookingData.hotel_id,
-          null,
-          1,
-          bookingData.hotel_price
-        ]);
-      }
-      
-      // Insert tourist place details
-      if (bookingData.tourist_places && bookingData.tourist_places.length > 0) {
-        for (const place of bookingData.tourist_places) {
-          await connection.execute(detailSql, [
+      if (hotel_id) {
+        try {
+          console.log("=== EXECUTING QUERY ===");
+          console.log("STEP:", "booking_details_hotel");
+          console.log("SQL:", detailSql);
+          const values = [
             bookingId,
+            hotel_id,
             null,
-            place.id,
             1,
-            place.ticket_price
-          ]);
+            bookingData.hotel_price
+          ];
+          console.log("VALUES:", values);
+          await connection.execute(detailSql, values);
+          console.log("=== QUERY SUCCESS ===");
+          console.log("STEP:", "booking_details_hotel");
+        } catch (error) {
+          console.error("=== QUERY FAILED ===");
+          console.error("STEP:", "booking_details_hotel");
+          console.error("MESSAGE:", error.message);
+          console.error("CODE:", error.code);
+          console.error("SQL MESSAGE:", error.sqlMessage);
+          console.error("SQL:", error.sql);
+          console.error("VALUES:", values);
+          throw error;
         }
       }
-      
-      return await this.getById(bookingId);
+
+      // Insert tourist place details
+      if (tourist_places && tourist_places.length > 0) {
+        try {
+          console.log("=== EXECUTING QUERY ===");
+          console.log("STEP:", "booking_details_tourist_places");
+          console.log("SQL:", detailSql);
+          for (const place of tourist_places) {
+            console.log("bookingId:", bookingId);
+            console.log("hotel_id:", hotel_id);
+            console.log("place:", place);
+            console.log("place.id:", place?.id);
+            console.log("place.ticket_price:", place?.ticket_price);
+
+            if (!place || !place.id) {
+              console.error("=== ERROR: place is null or place.id is null ===");
+              throw new Error('Invalid tourist place: missing id');
+            }
+
+            const values = [
+              bookingId,
+              hotel_id,
+              place.id,
+              1,
+              place.ticket_price
+            ];
+            console.log("VALUES:", values);
+            await connection.execute(detailSql, values);
+          }
+          console.log("=== QUERY SUCCESS ===");
+          console.log("STEP:", "booking_details_tourist_places");
+        } catch (error) {
+          console.error("=== QUERY FAILED ===");
+          console.error("STEP:", "booking_details_tourist_places");
+          console.error("MESSAGE:", error.message);
+          console.error("CODE:", error.code);
+          console.error("SQL MESSAGE:", error.sqlMessage);
+          console.error("SQL:", error.sql);
+          throw error;
+        }
+      }
+
+      // Insert custom vehicle details if provided
+      if (bookingData.custom_vehicles && bookingData.custom_vehicles.length > 0) {
+        try {
+          const vehicleDetailSql = `
+            INSERT INTO booking_vehicle_details (booking_id, vehicle_id, quantity, price_per_day)
+            VALUES (?, ?, ?, ?)
+          `;
+          console.log("=== EXECUTING QUERY ===");
+          console.log("STEP:", "booking_vehicle_details");
+          console.log("SQL:", vehicleDetailSql);
+
+          for (const customVehicle of bookingData.custom_vehicles) {
+            const values = [
+              bookingId,
+              customVehicle.vehicle_id,
+              customVehicle.quantity,
+              0 // price_per_day will be calculated from vehicle data
+            ];
+            console.log("VALUES:", values);
+            await connection.execute(vehicleDetailSql, values);
+          }
+          console.log("=== QUERY SUCCESS ===");
+          console.log("STEP:", "booking_vehicle_details");
+        } catch (error) {
+          console.error("=== QUERY FAILED ===");
+          console.error("STEP:", "booking_vehicle_details");
+          console.error("MESSAGE:", error.message);
+          console.error("CODE:", error.code);
+          console.error("SQL MESSAGE:", error.sqlMessage);
+          console.error("SQL:", error.sql);
+          throw error;
+        }
+      }
+
+      // Payment should be created separately via PaymentController
+      // to maintain single responsibility and avoid duplicate payments
+      console.log("=== PAYMENT CREATION SKIPPED - Use PaymentController.createPayment() ===");
+
+      console.log("=== READY TO COMMIT TRANSACTION ===");
+      console.log("bookingId:", bookingId);
+
+      // Return booking object directly from bookingData with the generated ID
+      // This avoids potential issues with getById() not finding the newly created booking
+      const result = {
+        id: bookingId,
+        ...bookingData,
+        status: 'PENDING_PAYMENT',
+        payment_status: 'PENDING',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      console.log("=== TRANSACTION COMMITTED SUCCESSFULLY ===");
+      console.log("Returning booking with ID:", result.id);
+      return result;
     });
+    } catch (err) {
+      console.error("===== BOOKING MODEL CRASH =====");
+      console.error(err);
+      console.error(err.stack);
+      throw err;
+    }
   }
 
   // Get booking by ID with full details
   static async getById(id) {
+    console.log("=== GETBYID START ===");
+    console.log("id:", id);
+
     const sql = `
-      SELECT 
+      SELECT
         b.id,
         b.user_name,
         b.email,
@@ -72,10 +257,18 @@ class Booking {
         c.name as city_name,
         b.total_price,
         b.budget,
-        b.status as booking_status,
+        b.status,
         b.user_id,
         b.vehicle_id,
+        v.name as vehicle_name,
+        v.category as vehicle_type,
+        v.capacity as vehicle_capacity,
+        v.price_per_day as vehicle_price_per_day,
+        v.image_url as vehicle_image_url,
         b.guide_id,
+        tg.name as guide_name,
+        tg.rating as guide_rating,
+        tg.price_per_day as guide_price_per_day,
         b.payment_method,
         b.payment_status,
         b.payment_proof,
@@ -88,17 +281,25 @@ class Booking {
         b.updated_at
       FROM bookings b
       JOIN cities c ON b.city_id = c.id
+      LEFT JOIN vehicles v ON b.vehicle_id = v.id
+      LEFT JOIN tour_guides tg ON b.guide_id = tg.id
       WHERE b.id = ?
     `;
     const bookings = await query(sql, [id]);
-    
-    if (bookings.length === 0) return null;
-    
+
+    console.log("bookings.length:", bookings.length);
+    console.log("bookings:", JSON.stringify(bookings, null, 2));
+
+    if (bookings.length === 0) {
+      console.log("=== GETBYID RETURNING NULL ===");
+      return null;
+    }
+
     const booking = bookings[0];
-    
+
     // Get booking details
     const detailsSql = `
-      SELECT 
+      SELECT
         bd.id as detail_id,
         bd.hotel_id,
         h.name as hotel_name,
@@ -126,16 +327,16 @@ class Booking {
       ORDER BY bd.id
     `;
     booking.details = await query(detailsSql, [id]);
-    
+
     return booking;
   }
 
   // Get all bookings (with pagination)
   static async getAll(page = 1, limit = 20, status = null) {
     const offset = (page - 1) * limit;
-    
+
     let sql = `
-      SELECT 
+      SELECT
         b.id,
         b.user_name,
         b.email,
@@ -143,7 +344,7 @@ class Booking {
         c.name as city_name,
         b.total_price,
         b.budget,
-        b.status as booking_status,
+        b.status,
         b.user_id,
         b.payment_method,
         b.payment_status,
@@ -153,25 +354,26 @@ class Booking {
         b.updated_at
       FROM bookings b
       JOIN cities c ON b.city_id = c.id
+      WHERE b.status != 'PENDING_PAYMENT'
     `;
     const params = [];
-    
+
     if (status) {
-      sql += ` WHERE b.status = ?`;
+      sql += ` AND b.status = ?`;
       params.push(status);
     }
-    
+
     sql += ` ORDER BY b.created_at DESC LIMIT ? OFFSET ?`;
     params.push(limit, offset);
-    
+
     const bookings = await query(sql, params);
     
     // Get total count
-    let countSql = `SELECT COUNT(*) as total FROM bookings b`;
+    let countSql = `SELECT COUNT(*) as total FROM bookings b WHERE b.status != 'PENDING_PAYMENT'`;
     const countParams = [];
-    
+
     if (status) {
-      countSql += ` WHERE b.status = ?`;
+      countSql += ` AND b.status = ?`;
       countParams.push(status);
     }
     
@@ -189,6 +391,17 @@ class Booking {
     };
   }
 
+  // Update booking status
+  static async updateStatus(id, status) {
+    const sql = `
+      UPDATE bookings 
+      SET status = ?, updated_at = CURRENT_TIMESTAMP 
+      WHERE id = ?
+    `;
+    await query(sql, [status, id]);
+    return await this.getById(id);
+  }
+
   // Get bookings by user email
   static async getByEmail(email, page = 1, limit = 10) {
     const offset = (page - 1) * limit;
@@ -202,7 +415,7 @@ class Booking {
         c.name as city_name,
         b.total_price,
         b.budget,
-        b.status as booking_status,
+        b.status,
         b.user_id,
         b.vehicle_id,
         b.guide_id,
@@ -238,17 +451,6 @@ class Booking {
         totalPages: Math.ceil(total / limit)
       }
     };
-  }
-
-  // Update booking status
-  static async updateStatus(id, status) {
-    const sql = `
-      UPDATE bookings 
-      SET status = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `;
-    await query(sql, [status, id]);
-    return await this.getById(id);
   }
 
   // Update booking payment status
@@ -337,7 +539,7 @@ class Booking {
         c.name as city_name,
         b.total_price,
         b.budget,
-        b.status as booking_status,
+        b.status,
         b.user_id,
         b.vehicle_id,
         b.guide_id,
@@ -392,49 +594,49 @@ class Booking {
 
   // Cancel booking
   static async cancel(id) {
-    return await this.updateStatus(id, 'cancelled');
+    return await this.updateStatus(id, 'CANCELLED');
   }
 
   // Confirm booking
   static async confirm(id) {
-    return await this.updateStatus(id, 'confirmed');
+    return await this.updateStatus(id, 'CONFIRMED');
   }
 
   // Get booking statistics
   static async getStats(cityId = null, startDate = null, endDate = null) {
     let sql = `
-      SELECT 
-        COUNT(*) as total_bookings,
-        SUM(total_price) as total_revenue,
-        AVG(total_price) as avg_booking_value,
-        COUNT(CASE WHEN status = 'confirmed' THEN 1 END) as confirmed_bookings,
-        COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_bookings,
-        COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled_bookings
+      SELECT
+        COUNT(CASE WHEN status = 'CONFIRMED' THEN 1 END) as total_bookings,
+        SUM(CASE WHEN status = 'CONFIRMED' THEN total_price ELSE 0 END) as total_revenue,
+        AVG(CASE WHEN status = 'CONFIRMED' THEN total_price ELSE NULL END) as avg_booking_value,
+        COUNT(CASE WHEN status = 'CONFIRMED' THEN 1 END) as confirmed_bookings,
+        COUNT(CASE WHEN status = 'PENDING_PAYMENT' THEN 1 END) as pending_payment_bookings,
+        COUNT(CASE WHEN status = 'CANCELLED' THEN 1 END) as cancelled_bookings
       FROM bookings
     `;
     const params = [];
-    
+
     const conditions = [];
-    
+
     if (cityId) {
       conditions.push('city_id = ?');
       params.push(cityId);
     }
-    
+
     if (startDate) {
       conditions.push('created_at >= ?');
       params.push(startDate);
     }
-    
+
     if (endDate) {
       conditions.push('created_at <= ?');
       params.push(endDate);
     }
-    
+
     if (conditions.length > 0) {
       sql += ` WHERE ${conditions.join(' AND ')}`;
     }
-    
+
     const result = await query(sql, params);
     return result[0];
   }

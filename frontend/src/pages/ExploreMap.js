@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Filter, MapPin, Hotel, Camera } from 'lucide-react';
-import { apiService } from '../services/api';
+import apiService from '../services/api';
 import { useBooking } from '../context/BookingContext';
 import MapView from '../components/MapView';
 import LoadingSpinner from '../components/LoadingSpinner';

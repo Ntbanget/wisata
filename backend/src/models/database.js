@@ -44,6 +44,33 @@ async function query(sql, params = []) {
     return rows;
   } catch (error) {
     console.error('Database query error:', error);
+
+    // Check for column not found error
+    if (error.code === 'ER_BAD_FIELD_ERROR') {
+      const columnMatch = error.message.match(/Unknown column '(\w+)'/);
+      if (columnMatch) {
+        const columnName = columnMatch[1];
+        let suggestedColumn = columnName;
+
+        // Map incorrect column names to correct ones based on table context
+        if (columnName === 'available') {
+          // Check if SQL mentions tour_guides or vehicles to determine correct column
+          if (sql.toLowerCase().includes('tour_guides')) {
+            suggestedColumn = 'is_available';
+          } else if (sql.toLowerCase().includes('vehicles')) {
+            suggestedColumn = 'is_active';
+          } else {
+            suggestedColumn = 'is_active or is_available (check table context)';
+          }
+        }
+
+        const enhancedError = new Error(`Database schema mismatch terdeteksi. Periksa apakah tabel menggunakan is_active atau is_available. Column '${columnName}' does not exist. Expected '${suggestedColumn}'.`);
+        enhancedError.code = 'SCHEMA_MISMATCH';
+        enhancedError.originalError = error;
+        throw enhancedError;
+      }
+    }
+
     throw error;
   }
 }

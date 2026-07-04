@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import { Icon, latLngBounds } from 'leaflet';
-import { apiService } from '../services/api';
+import apiService from '../services/api';
 import { formatCurrency, calculateDistance, computeDailySchedule, formatDurationMinutes, getOpeningHours } from '../utils/helpers';
 import LoadingSpinner from './LoadingSpinner';
 import ErrorMessage from './ErrorMessage';

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Mail, Phone, CreditCard, Shield, Check, Upload, Car, User as UserIcon, Calendar } from 'lucide-react';
-import { apiService } from '../services/api';
+import { ArrowLeft, User, Mail, Phone, CreditCard, Shield, Check, Upload, Car, User as UserIcon, Calendar, Copy, Landmark, Wallet } from 'lucide-react';
+import apiService from '../services/api';
 import { useBooking } from '../context/BookingContext';
 import { useAuth } from '../context/AuthContext';
 import { formatCurrency, isValidEmail, getHotelCategoryLabel, getPlaceCategoryIcon } from '../utils/helpers';
@@ -27,18 +27,94 @@ const CheckoutPage = () => {
   const [vehicles, setVehicles] = useState([]);
   const [tourGuides, setTourGuides] = useState([]);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const [vehicleQuantity, setVehicleQuantity] = useState(1);
   const [selectedGuide, setSelectedGuide] = useState(null);
   const [errors, setErrors] = useState({});
   const [isProcessing, setIsProcessing] = useState(false);
   const [bookingComplete, setBookingComplete] = useState(false);
   const [bookingId, setBookingId] = useState(null);
   const [uploadingProof, setUploadingProof] = useState(false);
+  const [customVehicleSelection, setCustomVehicleSelection] = useState(null);
+  const [vehicleMode, setVehicleMode] = useState('automatic');
+  const [displayTotalPrice, setDisplayTotalPrice] = useState(0);
+  const [copiedValue, setCopiedValue] = useState('');
 
   useEffect(() => {
     loadPackageData();
     loadVehicles();
     loadTourGuides();
+    loadCustomVehicleSelection();
   }, [packageId]);
+
+  const loadCustomVehicleSelection = () => {
+    const savedSelection = sessionStorage.getItem('customVehicleSelection');
+    if (savedSelection) {
+      try {
+        const selection = JSON.parse(savedSelection);
+        setCustomVehicleSelection(selection);
+        setVehicleMode('custom');
+        setFormData(prev => ({
+          ...prev,
+          people_count: selection.peopleCount,
+          nights: selection.nights
+        }));
+      } catch (error) {
+        console.error('Error loading custom vehicle selection:', error);
+      }
+    }
+  };
+
+  // Calculate hotel price based on room capacity
+  const calculateHotelPrice = () => {
+    if (!packageData || !packageData.hotel) return 0;
+    const roomCapacity = packageData.hotel.room_capacity || 2;
+    const peopleCount = parseInt(formData.people_count, 10) || 1;
+    const roomsNeeded = Math.ceil(peopleCount / roomCapacity);
+    const nights = parseInt(formData.nights, 10) || 1;
+    return roomsNeeded * packageData.hotel.price_per_night * nights;
+  };
+
+  // Calculate tourist places price
+  const calculateTouristPlacesPrice = () => {
+    if (!packageData || !packageData.tourist_places) return 0;
+    return packageData.tourist_places.reduce((sum, place) => sum + (place.ticket_price || 0), 0);
+  };
+
+  // Calculate vehicle price
+  const calculateVehiclePrice = () => {
+    if (vehicleMode === 'custom' && customVehicleSelection) {
+      return customVehicleSelection.vehicleCost;
+    }
+    if (selectedVehicle) {
+      const nights = parseInt(formData.nights, 10) || 1;
+      return selectedVehicle.price_per_day * vehicleQuantity * nights;
+    }
+    return 0;
+  };
+
+  // Calculate tour guide price
+  const calculateTourGuidePrice = () => {
+    if (selectedGuide) {
+      const nights = parseInt(formData.nights, 10) || 1;
+      return selectedGuide.price_per_day * nights;
+    }
+    return 0;
+  };
+
+  // Calculate total package price
+  const calculateTotalPrice = () => {
+    return calculateHotelPrice() + calculateTouristPlacesPrice() + calculateVehiclePrice() + calculateTourGuidePrice();
+  };
+
+  // Update formData when packageData is loaded
+  useEffect(() => {
+    if (packageData) {
+      setFormData(prev => ({
+        ...prev,
+        nights: packageData.nights !== undefined ? packageData.nights : prev.nights
+      }));
+    }
+  }, [packageData]);
 
   // Pre-fill user data if authenticated
   useEffect(() => {
@@ -96,40 +172,54 @@ const CheckoutPage = () => {
   const loadVehicles = async () => {
     try {
       const response = await apiService.getAllVehicles();
+      console.log('=== VEHICLES API RESPONSE ===');
+      console.log('Full response:', response);
+      console.log('Response.data:', response.data);
+      console.log('Response.success:', response.success);
+      console.log('Response.count:', response.count);
       setVehicles(response.data || []);
     } catch (error) {
       console.error('Error loading vehicles:', error);
     }
   };
 
-  // Auto-select vehicle based on people count (RULES.md requirement)
+  // Auto-select vehicle based on people count (smallest capacity that fits)
   useEffect(() => {
-    if (vehicles.length > 0 && formData.people_count > 0) {
-      const peopleCount = formData.people_count;
-      let category;
-      
-      if (peopleCount <= 4) {
-        category = 'normal';
-      } else if (peopleCount <= 10) {
-        category = 'hiace';
-      } else if (peopleCount <= 18) {
-        category = 'elf';
-      } else {
-        category = 'bus';
+    if (vehicleMode === 'automatic' && vehicles.length > 0 && formData.people_count > 0) {
+      const peopleCount = parseInt(formData.people_count, 10) || 1;
+
+      // Filter vehicles with capacity >= people_count and sort by capacity ascending
+      const suitableVehicles = vehicles
+        .filter(v => v.capacity >= peopleCount && v.available)
+        .sort((a, b) => a.capacity - b.capacity);
+
+      // Select the vehicle with smallest capacity that fits
+      if (suitableVehicles.length > 0) {
+        setSelectedVehicle(suitableVehicles[0]);
+        setVehicleQuantity(1); // Reset quantity to 1 when auto-selecting
       }
-      
-      // Find vehicle with matching category and sufficient capacity
-      const recommendedVehicle = vehicles.find(v => 
-        v.category === category && 
-        v.capacity >= peopleCount &&
-        v.available
-      );
-      
-      if (recommendedVehicle) {
-        setSelectedVehicle(recommendedVehicle);
-      }
+    } else if (vehicleMode === 'automatic' && formData.people_count === 0) {
+      // Clear vehicle selection if people_count is 0
+      setSelectedVehicle(null);
+      setVehicleQuantity(1);
     }
-  }, [vehicles, formData.people_count]);
+  }, [vehicles, formData.people_count, vehicleMode]);
+
+  // Auto-calculate vehicle quantity when vehicle or people_count changes
+  useEffect(() => {
+    if (selectedVehicle && vehicleMode === 'automatic' && formData.people_count > 0) {
+      const peopleCount = parseInt(formData.people_count, 10) || 1;
+      const neededQuantity = Math.ceil(peopleCount / selectedVehicle.capacity);
+      setVehicleQuantity(neededQuantity);
+    }
+  }, [selectedVehicle, formData.people_count, vehicleMode]);
+
+  // Recalculate total price when dependencies change
+  useEffect(() => {
+    if (packageData) {
+      setDisplayTotalPrice(calculateTotalPrice());
+    }
+  }, [formData.people_count, formData.nights, selectedVehicle, vehicleQuantity, selectedGuide, vehicleMode, customVehicleSelection, packageData]);
 
   const loadTourGuides = async () => {
     try {
@@ -177,9 +267,10 @@ const CheckoutPage = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    const numericValue = (name === 'people_count' || name === 'nights') ? parseInt(value, 10) : value;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: numericValue
     }));
     
     // Clear error for this field
@@ -189,6 +280,32 @@ const CheckoutPage = () => {
         [name]: ''
       }));
     }
+  };
+
+  const handleCopy = async (value) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedValue(value);
+      setTimeout(() => setCopiedValue(''), 2000);
+    } catch (error) {
+      console.error('Copy failed:', error);
+    }
+  };
+
+  const paymentOptions = [
+    { value: 'transfer', label: 'Transfer Bank / E-Money', icon: Landmark },
+    { value: 'qris', label: 'QRIS', icon: Wallet }
+  ];
+
+  const paymentDetails = {
+    transfer: [
+      { bank: 'BANK BCA', account: '1234567890', name: 'WisataJateng', icon: '🏦' },
+      { bank: 'BANK MANDIRI', account: '9876543210', name: 'WisataJateng', icon: '🏦' },
+      { bank: 'DANA', account: '081234567890', name: 'WisataJateng', icon: '💳' },
+      { bank: 'OVO', account: '081234567890', name: 'WisataJateng', icon: '💳' },
+      { bank: 'GOPAY', account: '081234567890', name: 'WisataJateng', icon: '💳' }
+    ],
+    qris: null
   };
 
   const handleSubmit = async (e) => {
@@ -207,31 +324,38 @@ const CheckoutPage = () => {
     setErrors({});
 
     try {
-      // Upload payment proof if provided
+      // Upload payment proof - REQUIRED
       let paymentProofUrl = null;
-      if (formData.payment_proof) {
-        setUploadingProof(true);
-        try {
-          const uploadResponse = await apiService.uploadPaymentProof(formData.payment_proof);
-          paymentProofUrl = uploadResponse.file_url;
-        } catch (uploadError) {
-          setErrors({ general: 'Failed to upload payment proof. Please try again.' });
-          setIsProcessing(false);
-          setUploadingProof(false);
-          return;
-        }
-        setUploadingProof(false);
+      if (!formData.payment_proof) {
+        setErrors({ general: 'Payment proof is required. Please upload your transfer proof.' });
+        setIsProcessing(false);
+        return;
       }
+      setUploadingProof(true);
+      try {
+        const uploadResponse = await apiService.uploadPaymentProof(formData.payment_proof);
+        paymentProofUrl = uploadResponse.file_url;
+        console.log("=== PAYMENT PROOF UPLOADED === URL:", paymentProofUrl);
+      } catch (uploadError) {
+        setErrors({ general: 'Failed to upload payment proof. Please try again.' });
+        setIsProcessing(false);
+        setUploadingProof(false);
+        return;
+      }
+      setUploadingProof(false);
 
       // Calculate total rooms based on people count (1 room = 2 people max)
       const totalRooms = Math.ceil(formData.people_count / 2);
+
+      // Calculate total price using the new calculation functions
+      const totalPrice = calculateTotalPrice();
 
       const bookingData = {
         user_name: formData.user_name.trim(),
         email: formData.email.trim().toLowerCase(),
         phone: formData.phone ? formData.phone.trim() : null,
         city_id: packageData.hotel.city_id,
-        total_price: packageData.total_price,
+        total_price: totalPrice,
         budget: packageData.budget,
         hotel_id: packageData.hotel.id,
         tourist_places: packageData.tourist_places.map(place => ({
@@ -246,31 +370,55 @@ const CheckoutPage = () => {
         trip_date: formData.trip_date,
         nights: formData.nights,
         total_rooms: totalRooms,
-        people_count: formData.people_count
+        people_count: formData.people_count,
+        vehicle_mode: vehicleMode,
+        custom_vehicles: vehicleMode === 'custom' && customVehicleSelection
+          ? customVehicleSelection.selectedVehicles
+          : (selectedVehicle && vehicleQuantity > 1
+            ? { [selectedVehicle.id]: vehicleQuantity }
+            : null),
+        is_custom: packageData?.isCustom || false
       };
 
+      console.log('=== BOOKING PAYLOAD ===');
+      console.log('Full bookingData:', bookingData);
+      console.log('is_custom:', bookingData.is_custom);
+      console.log('vehicle_mode:', bookingData.vehicle_mode);
+      console.log('custom_vehicles:', bookingData.custom_vehicles);
+      console.log('tourist_places:', bookingData.tourist_places);
+      console.log('budget:', bookingData.budget);
+      console.log('total_price:', bookingData.total_price);
+
       const response = await apiService.createBooking(bookingData);
-      
-      // If payment proof was uploaded, create payment record
-      if (paymentProofUrl && response.data && response.data.id) {
-        try {
-          await apiService.createPayment({
-            booking_id: response.data.id,
-            user_id: isAuthenticated ? user.id : null,
-            amount: packageData.total_price,
-            payment_method: formData.payment_method,
-            proof_image: paymentProofUrl
-          });
-        } catch (paymentError) {
-          console.error('Error creating payment record:', paymentError);
-        }
-      }
-      
+
+      console.log("=== BOOKING API RESPONSE ===", response);
+      console.log("=== RESPONSE.SUCCESS ===", response.success);
+      console.log("=== RESPONSE.DATA ===", response.data);
+      console.log("=== RESPONSE.MESSAGE ===", response.message);
+
+      // Payment is now created automatically in Booking.create() transaction
+      // No need for separate payment creation call
+
       // Update booking context
       setCurrentBooking(response.data);
       addToBookingHistory(response.data);
-      
+
       setBookingId(response.data.id);
+
+      // Buat payment record agar muncul di admin panel
+      try {
+        const paymentData = {
+          booking_id: response.data.id,
+          amount: totalPrice,
+          payment_method: formData.payment_method || 'transfer',
+          proof_image: paymentProofUrl
+        };
+        await apiService.createPayment(paymentData);
+        console.log("=== PAYMENT CREATED ===", paymentData);
+      } catch (paymentError) {
+        console.error("=== PAYMENT CREATION FAILED ===", paymentError);
+      }
+
       setBookingComplete(true);
       
       // Clear form
@@ -288,8 +436,9 @@ const CheckoutPage = () => {
       setSelectedGuide(null);
       
     } catch (error) {
-      setErrors({ 
-        general: error.error || 'Failed to create booking. Please try again.' 
+      console.error("=== BOOKING FAILED ===", error);
+      setErrors({
+        general: error.error || 'Failed to create booking. Please try again.'
       });
     } finally {
       setIsProcessing(false);
@@ -531,29 +680,93 @@ const CheckoutPage = () => {
 
                 {/* Vehicle Selection */}
                 <div className="border-t border-gray-200 pt-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Vehicle Selection (Optional)</h3>
-                  <div className="relative">
-                    <Car className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-                    <select
-                      value={selectedVehicle ? selectedVehicle.id : ''}
-                      onChange={(e) => {
-                        const vehicle = vehicles.find(v => v.id === parseInt(e.target.value));
-                        setSelectedVehicle(vehicle || null);
-                      }}
-                      className="input-field pl-10"
-                    >
-                      <option value="">Select a vehicle (optional)</option>
-                      {vehicles.map(vehicle => (
-                        <option key={vehicle.id} value={vehicle.id}>
-                          {vehicle.name} - {vehicle.category} (Capacity: {vehicle.capacity}) - {formatCurrency(vehicle.price_per_day)}/day
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  {selectedVehicle && (
-                    <p className="mt-2 text-sm text-gray-600">
-                      Selected: {selectedVehicle.name} - {formatCurrency(selectedVehicle.price_per_day)}/day
-                    </p>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    {vehicleMode === 'custom' ? 'Custom Vehicle Selection' : 'Vehicle Selection (Optional)'}
+                  </h3>
+                  
+                  {vehicleMode === 'custom' && customVehicleSelection ? (
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <p className="text-sm font-medium text-gray-700 mb-3">Selected Vehicles:</p>
+                      {Object.entries(customVehicleSelection.selectedVehicles).map(([vehicleId, quantity]) => {
+                        const vehicle = vehicles.find(v => v.id === parseInt(vehicleId));
+                        if (!vehicle || quantity === 0) return null;
+                        return (
+                          <div key={vehicleId} className="flex justify-between items-center py-2 border-b border-gray-200 last:border-0">
+                            <div>
+                              <p className="font-medium text-gray-900">{vehicle.name}</p>
+                              <p className="text-sm text-gray-600">
+                                {vehicle.category} • {vehicle.capacity} orang • {formatCurrency(vehicle.price_per_day)}/hari
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-medium text-gray-900">× {quantity}</p>
+                              <p className="text-sm text-gray-600">
+                                {formatCurrency(vehicle.price_per_day * quantity * formData.nights)}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      <div className="mt-3 pt-3 border-t border-gray-200">
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium text-gray-900">Total Vehicle Cost:</span>
+                          <span className="font-bold text-primary-600">
+                            {formatCurrency(customVehicleSelection.vehicleCost)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="relative">
+                        <Car className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                        <select
+                          value={selectedVehicle ? selectedVehicle.id : ''}
+                          onChange={(e) => {
+                            const vehicle = vehicles.find(v => v.id === parseInt(e.target.value));
+                            setSelectedVehicle(vehicle || null);
+                            setVehicleQuantity(1); // Reset quantity when manually changing vehicle
+                          }}
+                          className="input-field pl-10"
+                        >
+                          <option value="">Select a vehicle (optional)</option>
+                          {vehicles.map(vehicle => (
+                            <option key={vehicle.id} value={vehicle.id}>
+                              {vehicle.name} - {vehicle.category} (Capacity: {vehicle.capacity}) - {formatCurrency(vehicle.price_per_day)}/day
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {selectedVehicle && (
+                        <div className="mt-3">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Quantity (Auto-calculated based on people count)
+                          </label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={vehicleQuantity}
+                            onChange={(e) => setVehicleQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                            className="input-field"
+                          />
+                          <p className="mt-1 text-xs text-gray-500">
+                            Capacity: {selectedVehicle.capacity} × {vehicleQuantity} = {selectedVehicle.capacity * vehicleQuantity} people
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {selectedVehicle && vehicleMode === 'automatic' && (
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-600">
+                        Selected: {vehicleQuantity} × {selectedVehicle.name} - {formatCurrency(selectedVehicle.price_per_day)}/day
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Total: {formatCurrency(selectedVehicle.price_per_day * vehicleQuantity * formData.nights)}
+                      </p>
+                    </div>
                   )}
                 </div>
 
@@ -588,34 +801,90 @@ const CheckoutPage = () => {
                 {/* Payment Method */}
                 <div className="border-t border-gray-200 pt-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Payment Method</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    {['transfer', 'cash', 'ewallet', 'credit_card'].map(method => (
-                      <label
-                        key={method}
-                        className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-colors ${
-                          formData.payment_method === method
-                            ? 'border-indigo-500 bg-indigo-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name="payment_method"
-                          value={method}
-                          checked={formData.payment_method === method}
-                          onChange={handleInputChange}
-                          className="mr-3"
-                        />
-                        <span className="capitalize">{method}</span>
-                      </label>
-                    ))}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {paymentOptions.map((method) => {
+                      const Icon = method.icon;
+                      return (
+                        <label
+                          key={method.value}
+                          className={`flex items-center p-4 border-2 rounded-2xl cursor-pointer transition-all shadow-sm ${
+                            formData.payment_method === method.value
+                              ? 'border-indigo-500 bg-indigo-50'
+                              : 'border-gray-200 bg-white hover:border-gray-300'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="payment_method"
+                            value={method.value}
+                            checked={formData.payment_method === method.value}
+                            onChange={handleInputChange}
+                            className="mr-3"
+                          />
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center">
+                              <Icon className="w-5 h-5 text-indigo-600" />
+                            </div>
+                            <span className="font-medium text-gray-800">{method.label}</span>
+                          </div>
+                        </label>
+                      );
+                    })}
                   </div>
+
+                  {formData.payment_method === 'transfer' && (
+                    <div className="mt-5 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Landmark className="w-5 h-5 text-indigo-600" />
+                        <h4 className="font-semibold text-gray-900">Transfer Bank / E-Money</h4>
+                      </div>
+                      <div className="space-y-3">
+                        {paymentDetails.transfer.map((item) => (
+                          <div key={item.bank} className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+                            <div className="flex items-center justify-between gap-3">
+                              <div>
+                                <p className="text-sm font-semibold text-gray-900">{item.icon} {item.bank}</p>
+                                <p className="text-sm text-gray-600">No Rekening: {item.account}</p>
+                                <p className="text-sm text-gray-600">Atas Nama: {item.name}</p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleCopy(item.account)}
+                                className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                              >
+                                <Copy className="w-4 h-4" />
+                                {copiedValue === item.account ? 'Tersalin' : 'Copy'}
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {formData.payment_method === 'qris' && (
+                    <div className="mt-5 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Wallet className="w-5 h-5 text-indigo-600" />
+                        <h4 className="font-semibold text-gray-900">QRIS WisataJateng</h4>
+                      </div>
+                      <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-4 text-center">
+                        <img
+                          src="/images/qris-wisatajateng.png"
+                          alt="QRIS WisataJateng"
+                          className="mx-auto h-56 w-56 object-contain rounded-xl bg-white p-3 shadow-sm"
+                        />
+                        <p className="mt-4 text-sm font-semibold text-gray-900">[ QRIS WISATAJATENG ]</p>
+                        <p className="mt-2 text-sm text-gray-600">Scan menggunakan Mobile Banking atau E-Wallet.</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Payment Proof Upload */}
                 <div className="border-t border-gray-200 pt-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Payment Proof</h3>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                  <div className="border-2 border-dashed border-gray-300 rounded-2xl p-6 text-center bg-white shadow-sm">
                     <input
                       type="file"
                       id="payment_proof"
@@ -686,6 +955,35 @@ const CheckoutPage = () => {
             <div className="card p-6 sticky top-24">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Order Summary</h3>
               
+              {/* Price Breakdown */}
+              <div className="bg-blue-50 rounded-lg p-4 mb-4">
+                <h4 className="font-medium text-gray-900 mb-3 text-sm">Rincian Harga</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Wisata</span>
+                    <span className="font-medium">{formatCurrency(calculateTouristPlacesPrice())}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Hotel</span>
+                    <span className="font-medium">{formatCurrency(calculateHotelPrice())}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Kendaraan</span>
+                    <span className="font-medium">{formatCurrency(calculateVehiclePrice())}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Tour Guide</span>
+                    <span className="font-medium">{formatCurrency(calculateTourGuidePrice())}</span>
+                  </div>
+                  <div className="border-t border-gray-300 pt-2 mt-2">
+                    <div className="flex justify-between font-bold">
+                      <span className="text-gray-900">TOTAL</span>
+                      <span className="text-indigo-600">{formatCurrency(displayTotalPrice)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
               {/* Hotel */}
               <div className="mb-4">
                 <h4 className="font-medium text-gray-900 mb-2">Hotel</h4>
@@ -694,13 +992,14 @@ const CheckoutPage = () => {
                   <div className="text-sm text-gray-600">
                     {getHotelCategoryLabel(packageData.hotel.category)} • {packageData.nights || 1} malam
                   </div>
+                  <div className="text-sm text-gray-600">
+                    Kapasitas: {packageData.hotel.room_capacity || 2} orang/kamar • {Math.ceil(formData.people_count / (packageData.hotel.room_capacity || 2))} kamar
+                  </div>
                   <div className="text-sm font-medium text-gray-900 mt-1">
                     {formatCurrency(packageData.hotel.price_per_night)} / malam
                     {(packageData.nights || 1) > 1 && (
                       <span className="text-gray-500 ml-1">
-                        × {packageData.nights} = {formatCurrency(
-                          (packageData.hotel_total || packageData.hotel.price_per_night * (packageData.nights || 1))
-                        )}
+                        × {packageData.nights} malam × {Math.ceil(formData.people_count / (packageData.hotel.room_capacity || 2))} kamar = {formatCurrency(calculateHotelPrice())}
                       </span>
                     )}
                   </div>
@@ -770,7 +1069,7 @@ const CheckoutPage = () => {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Subtotal</span>
-                    <span className="font-medium">{formatCurrency(packageData.total_price)}</span>
+                    <span className="font-medium">{formatCurrency(displayTotalPrice)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Service Fee</span>
@@ -779,19 +1078,19 @@ const CheckoutPage = () => {
                   <div className="border-t pt-2 flex justify-between">
                     <span className="font-medium text-gray-900">Total</span>
                     <span className="text-lg font-bold text-primary-600">
-                      {formatCurrency(packageData.total_price)}
+                      {formatCurrency(displayTotalPrice)}
                     </span>
                   </div>
                 </div>
               </div>
 
               {/* Savings */}
-              {packageData.budget > packageData.total_price && (
+              {packageData.budget > displayTotalPrice && (
                 <div className="mt-4 p-3 bg-green-50 rounded-lg">
                   <div className="flex items-center justify-between text-sm text-green-800">
                     <span>You save</span>
                     <span className="font-medium">
-                      {formatCurrency(packageData.budget - packageData.total_price)}
+                      {formatCurrency(packageData.budget - displayTotalPrice)}
                     </span>
                   </div>
                 </div>

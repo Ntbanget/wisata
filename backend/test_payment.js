@@ -1,0 +1,2 @@
+const axios = require('axios');
+axios.post('http://localhost:5004/api/auth/admin/login', {email:'admin@wisata.com',password:'admin123'}).then(r=>{const token=r.data.token;return axios.put('http://localhost:5004/api/admin/payments/12/verify',{status:'approved',admin_notes:'Test approve'},{headers:{Authorization:'Bearer '+token}});}).then(r=>console.log(JSON.stringify(r.data,null,2))).catch(e=>console.error(e.response?.data||e.message));

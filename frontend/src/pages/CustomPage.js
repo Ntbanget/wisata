@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Plus, X, DollarSign, MapPin, Star } from 'lucide-react';
-import { apiService } from '../services/api';
+import apiService from '../services/api';
 import { useBooking } from '../context/BookingContext';
 import { formatCurrency, getHotelCategoryLabel, getHotelCategoryColor, getPlaceCategoryIcon } from '../utils/helpers';
 import LoadingSpinner from '../components/LoadingSpinner';

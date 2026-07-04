@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const validator = require('validator');
 const User = require('../models/User');
+const { logActivity } = require('../helpers/activityLogger');
 
 class AuthController {
   // Register new user
@@ -152,7 +153,7 @@ class AuthController {
 
       // Generate token
       const token = jwt.sign(
-        { id: user.id, email: user.email, role: user.role },
+        { id: user.id, email: user.email, role: user.role, name: user.name },
         process.env.JWT_SECRET || 'your-secret-key',
         { expiresIn: '7d' }
       );
@@ -231,7 +232,7 @@ class AuthController {
 
       // Generate token
       const token = jwt.sign(
-        { id: user.id, email: user.email, role: user.role },
+        { id: user.id, email: user.email, role: user.role, name: user.name },
         process.env.JWT_SECRET || 'your-secret-key',
         { expiresIn: '7d' }
       );
@@ -535,6 +536,20 @@ class AuthController {
       }
 
       await User.delete(parseInt(id));
+
+      // Log activity
+      try {
+        await logActivity(
+          req.user.id,
+          req.user.name,
+          'DELETE_CUSTOMER',
+          'CUSTOMER',
+          parseInt(id),
+          `Deleted customer with ID ${id}`
+        );
+      } catch (logError) {
+        console.error('Activity log error:', logError);
+      }
 
       res.json({
         success: true,

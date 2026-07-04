@@ -1,5 +1,7 @@
+const path = require('path');
 const Payment = require('../models/Payment');
 const Booking = require('../models/Booking');
+const Notification = require('../models/Notification');
 
 class PaymentController {
   // Create new payment
@@ -93,6 +95,46 @@ class PaymentController {
     }
   }
 
+  // Get payment proof image for admin
+  static async getPaymentProof(req, res) {
+    try {
+      const { id } = req.params;
+      const payment = await Payment.getById(id);
+
+      if (!payment) {
+        return res.status(404).json({
+          error: 'Payment not found'
+        });
+      }
+
+      if (!payment.proof_image) {
+        return res.status(404).json({
+          error: 'Payment proof not found'
+        });
+      }
+
+      const proofFile = payment.proof_image.replace(/^\//, '');
+      const proofPath = path.resolve(__dirname, '../../', proofFile);
+
+      res.sendFile(proofPath, (err) => {
+        if (err) {
+          console.error('Error sending proof file:', err);
+          if (!res.headersSent) {
+            res.status(404).json({
+              error: 'Unable to send payment proof file'
+            });
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Get payment proof error:', error);
+      res.status(500).json({
+        error: 'Failed to fetch payment proof',
+        message: error.message
+      });
+    }
+  }
+
   // Get payments by booking ID
   static async getPaymentsByBookingId(req, res) {
     try {
@@ -153,6 +195,19 @@ class PaymentController {
       });
     } catch (error) {
       console.error('Upload payment proof error:', error);
+      try {
+        if (req.user && req.user.id) {
+          await Notification.create({
+            user_id: req.user.id,
+            title: 'Upload Bukti Pembayaran Gagal',
+            message: 'Terjadi kesalahan saat mengunggah bukti pembayaran. Silakan coba kembali.',
+            type: 'payment_failed',
+            created_by: 'SYSTEM'
+          });
+        }
+      } catch (notifErr) {
+        console.error('Failed to create upload failure notification:', notifErr);
+      }
       res.status(500).json({
         error: 'Failed to upload payment proof',
         message: error.message
@@ -164,16 +219,32 @@ class PaymentController {
   static async updatePaymentStatus(req, res) {
     try {
       const { id } = req.params;
-      const { status, verified_by } = req.body;
+      const { status, admin_notes } = req.body;
+      const adminNotes = admin_notes || null;
 
-      if (!['pending', 'waiting_verification', 'paid', 'rejected', 'refunded'].includes(status)) {
+      const paymentStatus = Payment.normalizeStatus(status);
+      if (!paymentStatus) {
         return res.status(400).json({
           error: 'Invalid status',
-          message: 'Status must be one of: pending, waiting_verification, paid, rejected, refunded'
+          message: 'Status must be one of: pending, approved, rejected, paid'
         });
       }
 
-      const updatedPayment = await Payment.updateStatus(id, status, verified_by);
+      const updatedPayment = await Payment.updateStatus(id, paymentStatus, req.user.id);
+
+      // Update booking status based on payment status
+      if (updatedPayment) {
+        const booking = await Booking.getById(updatedPayment.booking_id);
+        if (booking) {
+          if (paymentStatus === 'paid') {
+            await Booking.updateStatus(updatedPayment.booking_id, 'CONFIRMED');
+            await Booking.updatePaymentStatus(updatedPayment.booking_id, 'paid', adminNotes);
+          } else if (paymentStatus === 'rejected') {
+            await Booking.updateStatus(updatedPayment.booking_id, 'PAYMENT_REJECTED');
+            await Booking.updatePaymentStatus(updatedPayment.booking_id, 'rejected', adminNotes);
+          }
+        }
+      }
 
       res.json({
         success: true,

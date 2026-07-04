@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Search, MapPin, Calendar, Users, Star, ArrowRight, Check } from 'lucide-react';
-import { apiService } from '../services/api';
+import { useNavigate, Link } from 'react-router-dom';
+import { Search, MapPin, Calendar, Users, Star, ArrowRight, Check, Compass, Shield, Sparkles, Phone, Mail, Instagram, Facebook, MessageCircle } from 'lucide-react';
+import apiService from '../services/api';
 import { formatCurrency, getRatingStars } from '../utils/helpers';
 import { selectFeaturedCities } from '../utils/popularCities';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -13,14 +13,28 @@ const LandingPage = () => {
   const [selectedCity, setSelectedCity] = useState('');
   const [budget, setBudget] = useState('');
   const [nights, setNights] = useState(1);
+  const [peopleCount, setPeopleCount] = useState('');
+  const [vehicleMode, setVehicleMode] = useState('automatic'); // 'automatic' or 'custom'
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [popularDestinations, setPopularDestinations] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
+  const [selectedVehicles, setSelectedVehicles] = useState({});
 
   useEffect(() => {
     fetchCities();
     fetchPopularDestinations();
+    fetchVehicles();
   }, []);
+
+  const fetchVehicles = async () => {
+    try {
+      const response = await apiService.getAllVehicles();
+      setVehicles(response.data || []);
+    } catch (error) {
+      console.error('Error fetching vehicles:', error);
+    }
+  };
 
   const fetchCities = async () => {
     try {
@@ -53,32 +67,75 @@ const LandingPage = () => {
       return;
     }
 
+    if (vehicleMode === 'custom' && !peopleCount) {
+      setError('Please enter number of people for custom vehicle selection');
+      return;
+    }
+
+    if (vehicleMode === 'custom') {
+      // Validate vehicle selection
+      const totalCapacity = Object.entries(selectedVehicles).reduce((sum, [vehicleId, quantity]) => {
+        const vehicle = vehicles.find(v => v.id === parseInt(vehicleId));
+        return sum + (vehicle ? vehicle.capacity * quantity : 0);
+      }, 0);
+
+      if (totalCapacity < parseInt(peopleCount)) {
+        setError(`Total capacity (${totalCapacity}) is less than number of people (${peopleCount}). Please select more vehicles.`);
+        return;
+      }
+
+      // Calculate vehicle cost
+      const vehicleCost = Object.entries(selectedVehicles).reduce((sum, [vehicleId, quantity]) => {
+        const vehicle = vehicles.find(v => v.id === parseInt(vehicleId));
+        return sum + (vehicle ? vehicle.price_per_day * quantity * nights : 0);
+      }, 0);
+
+      // Store custom vehicle selection in sessionStorage
+      sessionStorage.setItem('customVehicleSelection', JSON.stringify({
+        selectedVehicles,
+        peopleCount: parseInt(peopleCount),
+        vehicleCost,
+        nights: parseInt(nights)
+      }));
+    }
+
     const safeNights = Math.max(1, Math.min(parseInt(nights, 10) || 1, 14));
 
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await apiService.generatePackages({
-        city_id: selectedCity,
-        budget: parseFloat(budget),
-        packages_count: 3,
-        max_places: 4,
-        nights: safeNights
-      });
+      if (vehicleMode === 'automatic') {
+        const response = await apiService.generatePackages({
+          city_id: selectedCity,
+          budget: parseFloat(budget),
+          packages_count: 3,
+          max_places: 4,
+          nights: safeNights
+        });
 
-      if (response.data.packages.length === 0) {
-        setError('No packages found for your criteria. Try increasing your budget or selecting a different city.');
+        if (response.data.packages.length === 0) {
+          setError('No packages found for your criteria. Try increasing your budget or selecting a different city.');
+        } else {
+          sessionStorage.setItem('searchResults', JSON.stringify(response.data));
+          sessionStorage.setItem('searchCriteria', JSON.stringify({
+            city_id: selectedCity,
+            budget: parseFloat(budget),
+            nights: safeNights,
+            vehicleMode: 'automatic'
+          }));
+          navigate('/packages');
+        }
       } else {
-        // Store search results in sessionStorage for PackagePage
-        sessionStorage.setItem('searchResults', JSON.stringify(response.data));
+        // Custom vehicle mode - skip package generation and go directly to checkout
         sessionStorage.setItem('searchCriteria', JSON.stringify({
           city_id: selectedCity,
           budget: parseFloat(budget),
-          nights: safeNights
+          nights: safeNights,
+          vehicleMode: 'custom',
+          peopleCount: parseInt(peopleCount)
         }));
-        
-        navigate('/packages');
+        navigate('/checkout');
       }
     } catch (error) {
       setError('Failed to search packages. Please try again.');
@@ -87,26 +144,75 @@ const LandingPage = () => {
     }
   };
 
+  const handleVehicleQuantityChange = (vehicleId, quantity) => {
+    setSelectedVehicles(prev => ({
+      ...prev,
+      [vehicleId]: quantity > 0 ? quantity : 0
+    }));
+  };
+
   const features = [
     {
-      icon: MapPin,
-      title: 'Multi-City Support',
-      description: 'Explore 9 major cities in Central Java with comprehensive travel information'
+      icon: Shield,
+      title: 'Terpercaya',
+      description: 'Paket wisata yang aman, legal, dan dikelola dengan transparansi harga.'
     },
     {
-      icon: Calendar,
-      title: 'Smart Planning',
-      description: 'AI-powered package generation based on your budget and preferences'
+      icon: Sparkles,
+      title: 'Rencana Cerdas',
+      description: 'Sistem rekomendasi membantu memilih pengalaman terbaik sesuai budget dan durasi.'
     },
     {
       icon: Users,
-      title: 'Local Experiences',
-      description: 'Authentic cultural experiences and hidden gems recommended by locals'
+      title: 'Panduan Lokal',
+      description: 'Pengalaman autentik dari destinasi terbaik dan guide yang memahami budaya setempat.'
     },
     {
-      icon: Star,
-      title: 'Best Value',
-      description: 'Optimized packages that give you the most value for your budget'
+      icon: Compass,
+      title: 'Booking Mudah',
+      description: 'Proses booking sederhana, pembayaran jelas, dan notifikasi real-time untuk perjalanan Anda.'
+    }
+  ];
+
+  const testimonials = [
+    {
+      name: 'Rina & Damar',
+      role: 'Traveler dari Jakarta',
+      quote: 'Paketnya sangat rapi, kami tinggal pilih dan langsung booking. Perjalanan ke Dieng terasa jauh lebih praktis.',
+      rating: 5
+    },
+    {
+      name: 'Ayu Pratama',
+      role: 'Wisata keluarga',
+      quote: 'Kami suka desain website-nya yang nyaman dipakai dan informasi destinasi sangat lengkap.',
+      rating: 5
+    },
+    {
+      name: 'Bambang S.',
+      role: 'Solo traveler',
+      quote: 'Saya suka fitur pilih paket berdasarkan budget. Sangat membantu untuk liburan hemat tapi tetap berkesan.',
+      rating: 5
+    }
+  ];
+
+  const featuredPackages = [
+    {
+      title: 'Borobudur & Yogyakarta Heritage',
+      duration: '3 Hari 2 Malam',
+      price: 'Rp 2.450.000',
+      badge: 'Populer'
+    },
+    {
+      title: 'Dieng Highland Escape',
+      duration: '2 Hari 1 Malam',
+      price: 'Rp 1.650.000',
+      badge: 'Promo'
+    },
+    {
+      title: 'Jepara Beach Retreat',
+      duration: '4 Hari 3 Malam',
+      price: 'Rp 3.200.000',
+      badge: 'Baru'
     }
   ];
 
@@ -143,285 +249,239 @@ const LandingPage = () => {
   const citiesToShow = selectFeaturedCities(cities, 6);
 
   return (
-    <div className="min-h-screen">
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-600 text-white hero-pattern">
-        <div className="container section-padding">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6 animate-fade-in">
-              Discover Central Java
-              <span className="block text-3xl md:text-5xl mt-2 text-primary-200">
-                Your Perfect Adventure Awaits
-              </span>
+    <div className="min-h-screen bg-white">
+      <section className="relative overflow-hidden bg-slate-950 text-white">
+        <div className="absolute inset-0">
+          <img
+            src="https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=1600&q=80"
+            alt="Destinasi Wisata Jawa Tengah"
+            className="h-full w-full object-cover opacity-60"
+            loading="lazy"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/70 to-slate-900/40" />
+        </div>
+        <div className="relative container py-28 md:py-36">
+          <div className="max-w-3xl">
+            <div className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-slate-100 backdrop-blur">
+              <Compass className="mr-2 h-4 w-4 text-emerald-400" />
+              Jelajahi keindahan Jawa Tengah bersama WisataJateng
+            </div>
+            <h1 className="mt-6 text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl">
+              Temukan liburan yang nyaman, penuh petualangan, dan mudah dipesan.
             </h1>
-            
-            <p className="text-xl md:text-2xl text-primary-100 mb-12 animate-slide-up">
-              Plan your dream trip with AI-powered travel packages tailored to your budget
+            <p className="mt-6 max-w-2xl text-lg text-slate-200 sm:text-xl">
+              Dari Borobudur, Dieng, hingga pantai indah, kami membantu Anda merencanakan perjalanan yang sesuai budget dan selera.
             </p>
-
-            {/* Search Form */}
-            <form id="search-form" onSubmit={handleSearch} className="bg-white rounded-2xl shadow-large p-6 md:p-8 max-w-3xl mx-auto animate-slide-up">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2 text-left">
-                    Pilih Kota
-                  </label>
-                  <select
-                    value={selectedCity}
-                    onChange={(e) => setSelectedCity(e.target.value)}
-                    className="select-field"
-                    required
-                  >
-                    <option value="">Choose a city...</option>
-                    {cities.map((city) => (
-                      <option key={city.id} value={city.id}>
-                        {city.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2 text-left">
-                    Budget (IDR)
-                  </label>
-                  <input
-                    type="number"
-                    value={budget}
-                    onChange={(e) => setBudget(e.target.value)}
-                    placeholder="e.g., 1500000"
-                    className="input-field"
-                    min="10000"
-                    step="10000"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2 text-left">
-                    Jumlah Malam
-                  </label>
-                  <select
-                    value={nights}
-                    onChange={(e) => setNights(parseInt(e.target.value, 10))}
-                    className="select-field"
-                    required
-                  >
-                    <option value={1}>1 malam</option>
-                    <option value={2}>2 malam</option>
-                    <option value={3}>3 malam</option>
-                    <option value={4}>4 malam</option>
-                    <option value={5}>5 malam</option>
-                    <option value={6}>6 malam</option>
-                    <option value={7}>7 malam</option>
-                  </select>
-                </div>
-              </div>
-
-              <ErrorMessage error={error} className="mb-4" />
-
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full btn-primary text-lg py-3 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading ? (
-                  <div className="flex items-center justify-center space-x-2">
-                    <LoadingSpinner size="small" text="" />
-                    <span>Finding your perfect trip...</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center space-x-2">
-                    <Search className="w-5 h-5" />
-                    <span>Find My Trip</span>
-                  </div>
-                )}
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <button onClick={() => navigate('/packages')} className="inline-flex items-center justify-center rounded-full bg-indigo-600 px-6 py-3 font-semibold text-white shadow-lg shadow-indigo-600/20 transition hover:bg-indigo-700">
+                Jelajahi Paket Wisata <ArrowRight className="ml-2 h-4 w-4" />
               </button>
-            </form>
+              <button onClick={() => document.getElementById('destinations')?.scrollIntoView({ behavior: 'smooth' })} className="inline-flex items-center justify-center rounded-full border border-white/30 bg-white/10 px-6 py-3 font-semibold text-white backdrop-blur transition hover:bg-white/20">
+                Lihat Destinasi
+              </button>
+            </div>
+            <div className="mt-10 flex flex-wrap gap-4 text-sm text-slate-200">
+              <span className="rounded-full bg-white/10 px-3 py-2">20+ Destinasi</span>
+              <span className="rounded-full bg-white/10 px-3 py-2">98% Pengguna Puas</span>
+              <span className="rounded-full bg-white/10 px-3 py-2">Booking Mudah</span>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-16 bg-gray-50">
-        <div className="container">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Why Choose Wisata Jateng?
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Experience the best of Central Java with our intelligent travel planning system
-            </p>
+      <section id="about" className="bg-white py-20">
+        <div className="container grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+          <div className="overflow-hidden rounded-3xl shadow-lg">
+            <img src="https://images.unsplash.com/photo-1517760444937-f6397edcbbcd?auto=format&fit=crop&w=1200&q=80" alt="Wisata Jateng" className="h-full w-full object-cover" loading="lazy" />
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {features.map((feature, index) => (
-              <div key={index} className="text-center group">
-                <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-primary-200 transition-colors duration-200">
-                  <feature.icon className="w-8 h-8 text-primary-600" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  {feature.title}
-                </h3>
-                <p className="text-gray-600">
-                  {feature.description}
-                </p>
-              </div>
-            ))}
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-indigo-600">About WisataJateng</p>
+            <h2 className="mt-3 text-3xl font-bold text-slate-900 sm:text-4xl">Perjalanan Jawa Tengah yang terasa personal, aman, dan penuh kenangan.</h2>
+            <p className="mt-5 text-lg text-slate-600">Kami menghadirkan pengalaman perjalanan yang menggabungkan destinasi favorit, paket yang fleksibel, dan sistem booking yang sederhana untuk perjalanan solo, pasangan, maupun keluarga.</p>
+            <div className="mt-8 space-y-4">
+              {features.map((feature) => {
+                const Icon = feature.icon;
+                return (
+                  <div key={feature.title} className="flex gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-slate-900">{feature.title}</h3>
+                      <p className="mt-1 text-sm text-slate-600">{feature.description}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Popular Cities */}
-      <section className="py-16">
+      <section id="destinations" className="bg-slate-50 py-20">
         <div className="container">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Popular Cities
-            </h2>
-            <p className="text-xl text-gray-600">
-              Explore amazing destinations across Central Java
-            </p>
+          <div className="flex flex-col gap-3 text-center sm:text-left sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-indigo-600">Featured Destinations</p>
+              <h2 className="mt-2 text-3xl font-bold text-slate-900 sm:text-4xl">Destinasi favorit yang sudah siap dikunjungi</h2>
+            </div>
+            <button onClick={() => navigate('/packages')} className="text-sm font-semibold text-indigo-600 hover:text-indigo-700">Lihat Semua Destinasi →</button>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             {citiesToShow.map((city) => {
-              // Allow the key to match either the full DB name or the first
-              // word, so e.g. "Surakarta (Solo)" still maps to "Surakarta".
-              const lookupKey = CITY_LANDMARK_IMAGES[city.name]
-                ? city.name
-                : (city.name || '').split(' ')[0];
+              const lookupKey = CITY_LANDMARK_IMAGES[city.name] ? city.name : (city.name || '').split(' ')[0];
               const landmarkImg = CITY_LANDMARK_IMAGES[lookupKey];
               const landmarkLabel = CITY_LANDMARK_LABEL[lookupKey];
               return (
-              <div key={city.id} className="card-hover cursor-pointer group overflow-hidden">
-                <div className="relative h-48 rounded-t-xl overflow-hidden bg-gradient-to-br from-primary-400 to-secondary-400">
-                  {landmarkImg ? (
-                    <>
-                      <img
-                        src={landmarkImg}
-                        alt={`${landmarkLabel || city.name} (${city.name})`}
-                        loading="lazy"
-                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/15 to-transparent" />
-                      {landmarkLabel && (
-                        <span className="absolute bottom-2 left-3 text-white/95 text-xs font-medium drop-shadow">
-                          {landmarkLabel}
-                        </span>
-                      )}
-                    </>
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <MapPin className="w-12 h-12 text-white group-hover:scale-110 transition-transform duration-200" />
+                <div key={city.id} className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+                  <div className="relative h-48 overflow-hidden">
+                    {landmarkImg ? (
+                      <>
+                        <img src={landmarkImg} alt={city.name} className="h-full w-full object-cover transition duration-300 hover:scale-105" loading="lazy" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/65 to-transparent" />
+                        {landmarkLabel && <span className="absolute bottom-3 left-4 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-slate-900">{landmarkLabel}</span>}
+                      </>
+                    ) : (
+                      <div className="flex h-full items-center justify-center bg-indigo-100 text-indigo-600"><MapPin className="h-10 w-10" /></div>
+                    )}
+                  </div>
+                  <div className="p-6">
+                    <h3 className="text-xl font-semibold text-slate-900">{city.name}</h3>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">Destinasi dengan suasana khas, kuliner lezat, dan pengalaman yang tak terlupakan.</p>
+                    <div className="mt-6 flex items-center justify-between">
+                      <div className="flex items-center gap-1 text-amber-500"><Star className="h-4 w-4 fill-current" /><span className="text-sm font-semibold text-slate-700">4.8</span></div>
+                      <button onClick={() => { setSelectedCity(String(city.id)); setBudget('1500000'); document.getElementById('search-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }} className="text-sm font-semibold text-indigo-600 hover:text-indigo-700">Explore</button>
                     </div>
-                  )}
+                  </div>
                 </div>
-                <div className="p-6">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                    {city.name}
-                  </h3>
-                  <p className="text-gray-600 mb-4">
-                    Discover amazing destinations and experiences
-                  </p>
-                  <button
-                    onClick={() => {
-                      setSelectedCity(String(city.id));
-                      setBudget('1500000');
-                      const form = document.getElementById('search-form');
-                      if (form) {
-                        form.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                      }
-                    }}
-                    className="text-primary-600 hover:text-primary-700 font-medium flex items-center space-x-1 group-hover:space-x-2 transition-all duration-200"
-                  >
-                    <span>Explore</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
               );
             })}
           </div>
         </div>
       </section>
 
-      {/* Popular Destinations */}
-      {popularDestinations.length > 0 && (
-        <section className="py-16 bg-gray-50">
-          <div className="container">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-                Trending Destinations
-              </h2>
-              <p className="text-xl text-gray-600">
-                Most visited places by our travelers
-              </p>
+      <section id="packages" className="bg-white py-20">
+        <div className="container">
+          <div className="flex flex-col gap-3 text-center sm:text-left sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-indigo-600">Featured Packages</p>
+              <h2 className="mt-2 text-3xl font-bold text-slate-900 sm:text-4xl">Paket wisata yang siap mengantarkan Anda ke momen terbaik</h2>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {popularDestinations.map((destination, index) => (
-                <div key={index} className="card-hover">
-                  <div className="p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                          {destination.name}
-                        </h3>
-                        <p className="text-sm text-gray-600">
-                          {destination.city_name}
-                        </p>
-                      </div>
-                      <span className="badge-primary">
-                        {destination.category}
-                      </span>
+            <button onClick={() => navigate('/packages')} className="text-sm font-semibold text-indigo-600 hover:text-indigo-700">Lihat Semua Paket →</button>
+          </div>
+          <div className="mt-10 grid gap-6 lg:grid-cols-3">
+            {featuredPackages.map((pkg) => (
+              <div key={pkg.title} className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 shadow-sm">
+                <div className="h-40 bg-gradient-to-br from-indigo-500 via-indigo-600 to-emerald-500" />
+                <div className="p-6">
+                  <div className="flex items-center justify-between">
+                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">{pkg.badge}</span>
+                    <span className="text-sm font-medium text-slate-500">{pkg.duration}</span>
+                  </div>
+                  <h3 className="mt-4 text-xl font-semibold text-slate-900">{pkg.title}</h3>
+                  <p className="mt-2 text-sm text-slate-600">Termasuk transportasi, penginapan, dan itinerary yang sudah disusun.</p>
+                  <div className="mt-6 flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-slate-500">Mulai dari</p>
+                      <p className="text-lg font-semibold text-slate-900">{pkg.price}</p>
                     </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-gray-600">
-                          {destination.booking_count} bookings
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                        <span className="text-sm text-gray-600">
-                          {destination.total_visits} visits
-                        </span>
-                      </div>
-                    </div>
+                    <button onClick={() => navigate('/packages')} className="inline-flex items-center rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">Lihat Detail</button>
                   </div>
                 </div>
-              ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-slate-50 py-20">
+        <div className="container">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-indigo-600">Testimonial</p>
+            <h2 className="mt-2 text-3xl font-bold text-slate-900 sm:text-4xl">Apa yang dikatakan traveler kami</h2>
+          </div>
+          <div className="mt-10 grid gap-6 lg:grid-cols-3">
+            {testimonials.map((item) => (
+              <div key={item.name} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="flex items-center gap-1 text-amber-500">{Array.from({ length: item.rating }).map((_, idx) => <Star key={idx} className="h-4 w-4 fill-current" />)}</div>
+                <p className="mt-4 text-base leading-7 text-slate-600">“{item.quote}”</p>
+                <div className="mt-6 flex items-center gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 font-semibold text-indigo-700">{item.name.charAt(0)}</div>
+                  <div>
+                    <p className="font-semibold text-slate-900">{item.name}</p>
+                    <p className="text-sm text-slate-500">{item.role}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="contact" className="bg-white py-20">
+        <div className="container grid gap-8 lg:grid-cols-[0.95fr_1.05fr]">
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-8 shadow-sm">
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-indigo-600">Contact</p>
+            <h2 className="mt-3 text-3xl font-bold text-slate-900">Hubungi tim WisataJateng</h2>
+            <p className="mt-4 text-lg text-slate-600">Kami siap membantu merancang perjalanan yang sesuai kebutuhan Anda.</p>
+            <div className="mt-8 space-y-4">
+              <div className="flex items-center gap-3"><Phone className="h-5 w-5 text-indigo-600" /><span className="text-slate-700">+62 24 1234 5678</span></div>
+              <div className="flex items-center gap-3"><Mail className="h-5 w-5 text-indigo-600" /><span className="text-slate-700">info@wisatajateng.com</span></div>
+              <div className="flex items-center gap-3"><MapPin className="h-5 w-5 text-indigo-600" /><span className="text-slate-700">Semarang, Jawa Tengah</span></div>
+            </div>
+            <div className="mt-8 flex gap-3">
+              <a href="#" className="rounded-full border border-slate-200 p-3 text-slate-700 hover:bg-slate-100"><Instagram className="h-5 w-5" /></a>
+              <a href="#" className="rounded-full border border-slate-200 p-3 text-slate-700 hover:bg-slate-100"><Facebook className="h-5 w-5" /></a>
+              <a href="#" className="rounded-full border border-slate-200 p-3 text-slate-700 hover:bg-slate-100"><MessageCircle className="h-5 w-5" /></a>
             </div>
           </div>
-        </section>
-      )}
-
-      {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-primary-600 to-secondary-600 text-white">
-        <div className="container text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">
-            Ready for Your Adventure?
-          </h2>
-          <p className="text-xl mb-8 text-primary-100 max-w-2xl mx-auto">
-            Join thousands of travelers who have discovered the beauty of Central Java with our smart travel planner
-          </p>
-          <button
-            onClick={() => {
-              const form = document.getElementById('search-form');
-              if (form) {
-                form.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              } else {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }
-            }}
-            className="btn-accent text-lg px-8 py-3"
-          >
-            Start Planning Now
-          </button>
+          <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+            <form className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div><label className="mb-2 block text-sm font-medium text-slate-700">Nama</label><input className="w-full rounded-2xl border border-slate-200 px-4 py-3" placeholder="Nama Anda" /></div>
+                <div><label className="mb-2 block text-sm font-medium text-slate-700">Email</label><input className="w-full rounded-2xl border border-slate-200 px-4 py-3" placeholder="Email Anda" /></div>
+              </div>
+              <div><label className="mb-2 block text-sm font-medium text-slate-700">Pesan</label><textarea rows="5" className="w-full rounded-2xl border border-slate-200 px-4 py-3" placeholder="Ceritakan kebutuhan perjalanan Anda"></textarea></div>
+              <button className="rounded-full bg-indigo-600 px-6 py-3 font-semibold text-white hover:bg-indigo-700">Kirim Pesan</button>
+            </form>
+          </div>
         </div>
+      </section>
+
+      <section className="bg-slate-950 py-16 text-white">
+        <div className="container grid gap-8 lg:grid-cols-4">
+          <div>
+            <div className="flex items-center gap-2 font-semibold"><MapPin className="h-5 w-5 text-indigo-400" /> WisataJateng</div>
+            <p className="mt-4 text-sm leading-7 text-slate-400">Website pariwisata modern untuk membantu Anda merencanakan perjalanan ke Jawa Tengah dengan mudah dan nyaman.</p>
+          </div>
+          <div>
+            <h3 className="font-semibold">Quick Links</h3>
+            <ul className="mt-4 space-y-2 text-sm text-slate-400">
+              <li><a href="#about" className="hover:text-white">About Us</a></li>
+              <li><a href="#destinations" className="hover:text-white">Destinations</a></li>
+              <li><a href="#packages" className="hover:text-white">Packages</a></li>
+              <li><a href="#contact" className="hover:text-white">Contact</a></li>
+            </ul>
+          </div>
+          <div>
+            <h3 className="font-semibold">Destinasi Populer</h3>
+            <ul className="mt-4 space-y-2 text-sm text-slate-400">
+              <li>Borobudur</li>
+              <li>Dieng</li>
+              <li>Jepara</li>
+              <li>Solo</li>
+            </ul>
+          </div>
+          <div>
+            <h3 className="font-semibold">Kontak</h3>
+            <ul className="mt-4 space-y-2 text-sm text-slate-400">
+              <li>+62 24 1234 5678</li>
+              <li>info@wisatajateng.com</li>
+              <li>Semarang, Jawa Tengah</li>
+            </ul>
+          </div>
+        </div>
+        <div className="container mt-10 border-t border-white/10 pt-6 text-center text-sm text-slate-500">© {new Date().getFullYear()} WisataJateng. All rights reserved.</div>
       </section>
     </div>
   );

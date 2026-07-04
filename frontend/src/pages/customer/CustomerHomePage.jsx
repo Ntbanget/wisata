@@ -18,8 +18,10 @@ const CustomerHomePage = () => {
   useEffect(() => {
     const fetchCities = async () => {
       try {
-        const response = await apiService.get('/cities');
-        const cityList = response.data || response;
+        const response = await apiService.getCities();
+        console.log('=== CITIES API RESPONSE ===', response);
+        const cityList = response.cities || response.data || response || [];
+        console.log('=== CITY LIST ===', cityList);
         setCities(Array.isArray(cityList) ? cityList : []);
       } catch (error) {
         console.error('Gagal fetch cities:', error);
@@ -75,15 +77,18 @@ const CustomerHomePage = () => {
     setError(null);
 
     try {
-      const params = new URLSearchParams({
+      const params = {
         city_id: String(formData.city_id),
         budget: String(formData.budget),
         nights: String(formData.nights)
-      });
+      };
 
-      const response = await apiService.get(`/packages?${params}`);
+      console.log('=== GENERATE PACKAGES PARAMS ===', params);
+      const response = await apiService.generatePackages(params);
+      console.log('=== GENERATE PACKAGES RESPONSE ===', response);
 
-      const packages = response?.data?.packages || response?.packages || [];
+      const packages = response?.packages || response?.data?.packages || [];
+      console.log('=== PACKAGES EXTRACTED ===', packages);
 
       if (packages.length === 0) {
         setError('Tidak ada paket yang sesuai. Coba ubah budget atau kota.');

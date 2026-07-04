@@ -319,6 +319,8 @@ class PackageGenerator {
     const packages = [];
     for (let i = 0; i < hotelChoices.length; i++) {
       const hotel = hotelChoices[i];
+      // Hotel price calculation will be done in frontend based on people_count
+      // Backend returns price_per_night and room_capacity
       const hotelTotal = hotel.price_per_night * safeNights;
       const remaining = Math.max(0, budget - hotelTotal);
 
@@ -385,6 +387,10 @@ class PackageGenerator {
     // Order: cheapest first so user sees budget-friendly option up top.
     packages.sort((a, b) => a.total_price - b.total_price);
     return packages.slice(0, packagesCount);
+  }
+
+  static rankPlacesByPopularity(places) {
+    return rankPlacesByPopularity(places);
   }
 
   static splitPlacesByDay(places, days) {

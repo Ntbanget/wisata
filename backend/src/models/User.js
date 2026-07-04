@@ -120,10 +120,17 @@ class User {
       SELECT
         COUNT(*) as total_users,
         SUM(CASE WHEN role = 'user' THEN 1 ELSE 0 END) as users,
-        SUM(CASE WHEN role = 'admin' THEN 1 ELSE 0 END) as admins
+        SUM(CASE WHEN role = 'admin' THEN 1 ELSE 0 END) as admins,
+        SUM(CASE WHEN role = 'customer' THEN 1 ELSE 0 END) as customers
       FROM users
     `;
+
+    console.log("=== DASHBOARD CUSTOMER SQL ===", sql);
+
     const result = await query(sql);
+
+    console.log("=== DASHBOARD CUSTOMER RESULT ===", result[0]);
+
     return result[0];
   }
 }

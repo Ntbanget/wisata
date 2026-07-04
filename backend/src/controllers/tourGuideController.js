@@ -4,7 +4,10 @@ class TourGuideController {
   // Get all tour guides (public)
   static async getAllTourGuides(req, res) {
     try {
+      console.log('=== GET /api/tour-guides ===');
+      console.log('SQL: SELECT * FROM tour_guides WHERE is_available = 1 ORDER BY rating DESC');
       const guides = await TourGuide.getAll();
+      console.log('RESULT: Found', guides.length, 'tour guides');
       res.json({
         success: true,
         data: guides,
@@ -128,7 +131,7 @@ class TourGuideController {
   static async updateTourGuide(req, res) {
     try {
       const { id } = req.params;
-      const { name, specialization, experience_years, languages, price_per_day, image_url, bio, rating, available } = req.body;
+      const { name, specialization, experience_years, languages, price_per_day, image_url, bio, rating, is_available } = req.body;
 
       const updateData = {};
       if (name !== undefined) updateData.name = name;
@@ -139,7 +142,7 @@ class TourGuideController {
       if (image_url !== undefined) updateData.image_url = image_url;
       if (bio !== undefined) updateData.bio = bio;
       if (rating !== undefined) updateData.rating = rating;
-      if (available !== undefined) updateData.available = available;
+      if (is_available !== undefined) updateData.is_available = is_available;
 
       await TourGuide.update(id, updateData);
       const guide = await TourGuide.getById(id);

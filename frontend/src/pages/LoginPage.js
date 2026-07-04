@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { User, Mail, Lock, Phone, ArrowRight, Shield } from 'lucide-react';
-import api from '../services/api';
+import apiService from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 const LoginPage = () => {

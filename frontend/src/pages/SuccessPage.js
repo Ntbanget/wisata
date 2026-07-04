@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Check, MapPin, Calendar, Users, ArrowRight, Download, Share2, Navigation } from 'lucide-react';
-import { apiService } from '../services/api';
+import apiService from '../services/api';
 import { useBooking } from '../context/BookingContext';
 import { formatCurrency, formatDate, generateItinerary, generateMapsUrl, getPlaceCategoryIcon } from '../utils/helpers';
 import LoadingSpinner from '../components/LoadingSpinner';

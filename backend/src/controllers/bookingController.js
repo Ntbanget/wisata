@@ -5,6 +5,17 @@ class BookingController {
   // Create new booking
   static async createBooking(req, res) {
     try {
+      console.log('=== POST /api/booking ===');
+      console.log('SQL: INSERT INTO bookings (user_name, email, city_id, total_price, budget, hotel_id, ...)');
+      console.log('=== BOOKING REQUEST RECEIVED ===');
+      console.log('Full req.body:', req.body);
+      console.log('is_custom:', req.body.is_custom);
+      console.log('vehicle_mode:', req.body.vehicle_mode);
+      console.log('custom_vehicles:', req.body.custom_vehicles);
+      console.log('tourist_places:', req.body.tourist_places);
+      console.log('vehicle_id:', req.body.vehicle_id);
+      console.log('guide_id:', req.body.guide_id);
+
       const {
         user_name,
         email,
@@ -12,11 +23,28 @@ class BookingController {
         total_price,
         budget,
         hotel_id,
-        tourist_places
+        tourist_places,
+        vehicle_id,
+        guide_id,
+        payment_method,
+        payment_proof,
+        trip_date,
+        nights,
+        total_rooms,
+        people_count,
+        vehicle_mode,
+        custom_vehicles
       } = req.body;
 
       // Validate required fields
       if (!user_name || !email || !city_id || !total_price || !budget || !hotel_id) {
+        console.log('❌ VALIDATION ERROR: Missing required fields');
+        console.log('user_name:', user_name);
+        console.log('email:', email);
+        console.log('city_id:', city_id);
+        console.log('total_price:', total_price);
+        console.log('budget:', budget);
+        console.log('hotel_id:', hotel_id);
         return res.status(400).json({
           success: false,
           error: 'Missing required fields: user_name, email, city_id, total_price, budget, hotel_id'
@@ -39,6 +67,15 @@ class BookingController {
         });
       }
 
+      // VALIDATION: If payment proof is provided, user MUST exist or be authenticated
+      // This prevents orphaned bookings without payment records
+      if (payment_proof && !req.user && !email) {
+        return res.status(400).json({
+          success: false,
+          error: 'Payment proof requires authentication. Please login or provide a valid email.'
+        });
+      }
+
       // Validate city_id
       if (!validator.isInt(String(city_id), { min: 1 })) {
         return res.status(400).json({
@@ -51,6 +88,16 @@ class BookingController {
       const totalPriceNum = parseFloat(total_price);
       const budgetNum = parseFloat(budget);
 
+      // TEMPORARY LOGGING FOR BUG INVESTIGATION
+      console.log({
+        booking_type: req.body.booking_type,
+        budget: req.body.budget,
+        total_price: req.body.total_price,
+        package_id: req.body.package_id,
+        is_custom: req.body.is_custom,
+        body: req.body
+      });
+
       if (!validator.isFloat(String(total_price), { min: 0 }) || !validator.isFloat(String(budget), { min: 0 })) {
         return res.status(400).json({
           success: false,
@@ -58,7 +105,9 @@ class BookingController {
         });
       }
 
-      if (totalPriceNum > budgetNum) {
+      // Only apply budget validation for package bookings (not custom bookings)
+      const isCustom = req.body.is_custom === true || req.body.is_custom === 'true';
+      if (!isCustom && totalPriceNum > budgetNum) {
         return res.status(400).json({
           success: false,
           error: 'Total price cannot exceed budget'
@@ -76,20 +125,52 @@ class BookingController {
       // Validate tourist_places
       let touristPlacesArray = [];
       if (tourist_places) {
+        console.log('=== TOURIST PLACES VALIDATION START ===');
+        console.log('tourist_places type:', typeof tourist_places);
+        console.log('tourist_places value:', JSON.stringify(tourist_places));
+
         if (!Array.isArray(tourist_places)) {
+          console.log('❌ VALIDATION ERROR: tourist_places must be an array, got:', typeof tourist_places);
           return res.status(400).json({
             success: false,
             error: 'tourist_places must be an array'
           });
         }
 
-        touristPlacesArray = tourist_places.filter(place => 
-          place && 
-          validator.isInt(String(place.id), { min: 1}) && 
-          validator.isFloat(String(place.ticket_price), { min: 0 })
-        );
+        touristPlacesArray = tourist_places.filter((place, index) => {
+          console.log(`  Checking place[${index}]:`, JSON.stringify(place));
+          console.log(`  place[${index}].id:`, place?.id);
+          console.log(`  place[${index}].ticket_price:`, place?.ticket_price);
+
+          if (!place) {
+            console.log(`  ❌ place[${index}] is null/undefined`);
+            return false;
+          }
+
+          if (!place.id) {
+            console.log(`  ❌ place[${index}].id is null/undefined`);
+            return false;
+          }
+
+          if (!place.ticket_price) {
+            console.log(`  ❌ place[${index}].ticket_price is null/undefined`);
+            return false;
+          }
+
+          const isValidId = validator.isInt(String(place.id), { min: 1 });
+          const isValidPrice = validator.isFloat(String(place.ticket_price), { min: 0 });
+
+          console.log(`  place[${index}] valid:`, isValidId && isValidPrice);
+          return isValidId && isValidPrice;
+        });
+
+        console.log('tourist_places validation:');
+        console.log('  Input count:', tourist_places.length);
+        console.log('  Valid count:', touristPlacesArray.length);
+        console.log('  Filtered out:', tourist_places.length - touristPlacesArray.length);
 
         if (touristPlacesArray.length === 0) {
+          console.log('❌ VALIDATION ERROR: No valid tourist places found');
           return res.status(400).json({
             success: false,
             error: 'At least one valid tourist place is required'
@@ -97,7 +178,55 @@ class BookingController {
         }
       }
 
-      // Create booking data
+      // Validate vehicle_id if provided
+      if (vehicle_id && !validator.isInt(String(vehicle_id), { min: 1 })) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid vehicle_id'
+        });
+      }
+
+      // Validate guide_id if provided
+      if (guide_id && !validator.isInt(String(guide_id), { min: 1 })) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid guide_id'
+        });
+      }
+
+      // Validate vehicle_mode if provided
+      if (vehicle_mode && !['automatic', 'custom'].includes(vehicle_mode)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid vehicle_mode. Must be automatic or custom'
+        });
+      }
+
+      // Validate custom_vehicles if provided
+      let customVehiclesArray = [];
+      if (custom_vehicles) {
+        console.log('custom_vehicles validation:');
+        console.log('  Type:', typeof custom_vehicles);
+        console.log('  Value:', custom_vehicles);
+
+        if (typeof custom_vehicles !== 'object') {
+          console.log('❌ VALIDATION ERROR: custom_vehicles must be an object');
+          return res.status(400).json({
+            success: false,
+            error: 'custom_vehicles must be an object'
+          });
+        }
+
+        // Convert custom_vehicles object to array format
+        customVehiclesArray = Object.entries(custom_vehicles).map(([vehicleId, quantity]) => ({
+          vehicle_id: parseInt(vehicleId),
+          quantity: parseInt(quantity)
+        })).filter(cv => cv.quantity > 0);
+
+        console.log('  Converted to array:', customVehiclesArray);
+      }
+
+      // Create booking data with PENDING_PAYMENT status
       const bookingData = {
         user_name: user_name.trim(),
         email: email.trim().toLowerCase(),
@@ -107,31 +236,42 @@ class BookingController {
         hotel_id: parseInt(hotel_id),
         hotel_price: totalPriceNum - touristPlacesArray.reduce((sum, place) => sum + place.ticket_price, 0),
         tourist_places: touristPlacesArray,
-        user_id: req.user ? req.user.id : null  // Associate booking with logged-in user
+        user_id: req.user ? req.user.id : null,
+        vehicle_id: vehicle_id ? parseInt(vehicle_id) : null,
+        guide_id: guide_id ? parseInt(guide_id) : null,
+        payment_method: payment_method || null,
+        payment_proof: payment_proof || null,
+        trip_date: trip_date || null,
+        nights: nights ? parseInt(nights) : 1,
+        total_rooms: total_rooms ? parseInt(total_rooms) : null,
+        people_count: people_count ? parseInt(people_count) : 1,
+        vehicle_mode: vehicle_mode || 'automatic',
+        custom_vehicles: customVehiclesArray.length > 0 ? customVehiclesArray : null,
+        status: 'PENDING_PAYMENT' // Set initial status to PENDING_PAYMENT
       };
 
       // Create booking
       const newBooking = await Booking.create(bookingData);
+
+      console.log("=== BOOKING CREATED SUCCESSFULLY ===");
+      console.log("newBooking:", JSON.stringify(newBooking, null, 2));
+      console.log("newBooking type:", typeof newBooking);
+      console.log("newBooking is null:", newBooking === null);
 
       res.status(201).json({
         success: true,
         data: newBooking,
         message: 'Booking created successfully'
       });
-    } catch (error) {
-      console.error('Error creating booking:', error);
-      
-      if (error.code === 'ER_NO_REFERENCED_ROW_2') {
-        return res.status(400).json({
-          success: false,
-          error: 'Invalid reference: city, hotel, or tourist place not found'
-        });
-      }
-      
-      res.status(500).json({
+    } catch (err) {
+      console.error("===== CREATE BOOKING CRASH =====");
+      console.error(err);
+      console.error(err.stack);
+
+      // Return proper error response instead of throwing
+      return res.status(400).json({
         success: false,
-        error: 'Failed to create booking',
-        message: error.message
+        error: err.message || 'Failed to create booking'
       });
     }
   }
@@ -183,13 +323,13 @@ class BookingController {
       // Validate status
       let statusFilter = null;
       if (status) {
-        const validStatuses = ['pending', 'confirmed', 'cancelled'];
+        const validStatuses = ['PENDING_PAYMENT', 'CONFIRMED', 'PAYMENT_REJECTED', 'CANCELLED'];
         if (validStatuses.includes(status)) {
           statusFilter = status;
         } else {
           return res.status(400).json({
             success: false,
-            error: 'Invalid status. Must be: pending, confirmed, or cancelled'
+            error: 'Invalid status. Must be: PENDING_PAYMENT, CONFIRMED, PAYMENT_REJECTED, or CANCELLED'
           });
         }
       }
@@ -216,7 +356,7 @@ class BookingController {
     try {
       const { email } = req.query;
       const { page = 1, limit = 10 } = req.query;
-      
+
       if (!email) {
         return res.status(400).json({
           success: false,
@@ -232,8 +372,8 @@ class BookingController {
       }
 
       // Validate pagination parameters
-      const pageNum = validator.isInt(page, { min: 1 }) ? parseInt(page) : 1;
-      const limitNum = validator.isInt(limit, { min: 1, max: 50 }) ? parseInt(limit) : 10;
+      const pageNum = validator.isInt(String(page), { min: 1 }) ? parseInt(page) : 1;
+      const limitNum = validator.isInt(String(limit), { min: 1, max: 50 }) ? parseInt(limit) : 10;
 
       const result = await Booking.getByEmail(email.trim().toLowerCase(), pageNum, limitNum);
 
@@ -265,11 +405,11 @@ class BookingController {
         });
       }
 
-      const validStatuses = ['pending', 'confirmed', 'cancelled'];
+      const validStatuses = ['PENDING_PAYMENT', 'CONFIRMED', 'PAYMENT_REJECTED', 'CANCELLED'];
       if (!validStatuses.includes(status)) {
         return res.status(400).json({
           success: false,
-          error: 'Invalid status. Must be: pending, confirmed, or cancelled'
+          error: 'Invalid status. Must be: PENDING_PAYMENT, CONFIRMED, PAYMENT_REJECTED, or CANCELLED'
         });
       }
 

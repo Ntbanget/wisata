@@ -15,6 +15,9 @@ router.get('/', authenticate, adminOnly, BookingController.getAllBookings);
 // GET /api/booking/email - Get bookings by user email (requires authentication)
 router.get('/email', authenticate, BookingController.getBookingsByEmail);
 
+// GET /api/booking/my-bookings - Get current user's bookings (requires authentication)
+router.get('/my-bookings', authenticate, BookingController.getBookingsByEmail);
+
 // GET /api/booking/stats - Get booking statistics (admin only)
 router.get('/stats', authenticate, adminOnly, BookingController.getBookingStats);
 

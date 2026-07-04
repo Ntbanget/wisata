@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Plus, Edit, Trash2, Search } from 'lucide-react';
-import { apiService } from '../../services/api';
+import apiService from '../../services/api';
 import { formatCurrency } from '../../utils/helpers';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';

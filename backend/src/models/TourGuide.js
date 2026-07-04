@@ -3,12 +3,12 @@ const { query } = require('./database');
 class TourGuide {
   // Create new tour guide
   static async create(guideData) {
-    const { name, specialization, experience_years, languages, price_per_day, image_url, bio, rating = 0, available = true } = guideData;
+    const { name, specialization, experience_years, languages, price_per_day, image_url, bio, rating = 0, is_available = 1 } = guideData;
     const sql = `
-      INSERT INTO tour_guides (name, specialization, experience_years, languages, price_per_day, image_url, bio, rating, available)
+      INSERT INTO tour_guides (name, specialization, experience_years, languages, price_per_day, image_url, bio, rating, is_available)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
-    const [result] = await query(sql, [name, specialization, experience_years, languages, price_per_day, image_url, bio, rating, available]);
+    const [result] = await query(sql, [name, specialization, experience_years, languages, price_per_day, image_url, bio, rating, is_available]);
     return result.insertId;
   }
 
@@ -21,22 +21,22 @@ class TourGuide {
 
   // Get all tour guides
   static async getAll() {
-    const sql = 'SELECT * FROM tour_guides WHERE available = true ORDER BY rating DESC';
-    const [guides] = await query(sql);
+    const sql = 'SELECT * FROM tour_guides WHERE is_available = 1 ORDER BY rating DESC';
+    const guides = await query(sql);
     return guides;
   }
 
   // Get tour guides by specialization
   static async getBySpecialization(specialization) {
-    const sql = 'SELECT * FROM tour_guides WHERE specialization = ? AND available = true ORDER BY rating DESC';
-    const [guides] = await query(sql, [specialization]);
+    const sql = 'SELECT * FROM tour_guides WHERE specialization = ? AND is_available = 1 ORDER BY rating DESC';
+    const guides = await query(sql, [specialization]);
     return guides;
   }
 
   // Get top-rated tour guides
   static async getTopRated(limit = 5) {
-    const sql = 'SELECT * FROM tour_guides WHERE available = true ORDER BY rating DESC LIMIT ?';
-    const [guides] = await query(sql, [limit]);
+    const sql = 'SELECT * FROM tour_guides WHERE is_available = 1 ORDER BY rating DESC LIMIT ?';
+    const guides = await query(sql, [limit]);
     return guides;
   }
 
@@ -77,9 +77,9 @@ class TourGuide {
       fields.push('rating = ?');
       values.push(updateData.rating);
     }
-    if (updateData.available !== undefined) {
-      fields.push('available = ?');
-      values.push(updateData.available);
+    if (updateData.is_available !== undefined) {
+      fields.push('is_available = ?');
+      values.push(updateData.is_available);
     }
 
     if (fields.length === 0) {

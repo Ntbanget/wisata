@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, MapPin, Phone, Mail } from 'lucide-react';
+import { Menu, X, MapPin, Bell, UserCircle, LogOut, Compass, Package, CalendarClock, Home, Info, Send, Map, ChevronDown } from 'lucide-react';
+import apiService from '../services/api';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { isDark, toggleTheme } = useTheme();
@@ -24,43 +26,77 @@ const Navbar = () => {
     setIsOpen(false);
   }, [location]);
 
-  const navigation = [
+  const publicNavigation = [
     { name: 'Home', href: '/' },
-    { name: 'Packages', href: '/packages' },
-    { name: 'Explore Map', href: '/explore' },
+    { name: 'About Us', href: '/about' },
+    { name: 'Destinations', href: '/#destinations' },
+    { name: 'Packages', href: '/#packages' },
+    { name: 'Contact', href: '/contact' },
   ];
+
+  const userNavigation = [
+    { name: 'Home', href: '/customer/home', icon: Home },
+    { name: 'Packages', href: '/packages', icon: Package },
+    { name: 'Explore Map', href: '/explore', icon: Map },
+    { name: 'My Bookings', href: '/customer/bookings', icon: CalendarClock },
+  ];
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const loadUnread = async () => {
+      try {
+        if (token && user && user.role !== 'admin') {
+          const res = await apiService.getNotificationsUnreadCount();
+          const count = res?.data?.unread_count ?? res?.unread_count ?? 0;
+          setUnreadCount(count);
+        }
+      } catch (err) {
+        console.warn('Failed to load unread count', err);
+        setUnreadCount(0);
+      }
+    };
+
+    loadUnread();
+  }, [token, user]);
 
   const handleNavigation = (path) => {
     navigate(path);
     setIsOpen(false);
+    if (path === '/notifications') {
+      setUnreadCount(0);
+    }
   };
+
+  const navigationItems = token && user && user.role !== 'admin' ? userNavigation : publicNavigation;
 
   return (
     <nav className={`fixed top-0 w-full z-50 transition-all duration-300 ${
       isScrolled 
-        ? 'bg-white/95 backdrop-blur-custom shadow-medium' 
-        : 'bg-white shadow-soft'
+        ? 'bg-white/95 backdrop-blur border-b border-slate-200/80 shadow-sm' 
+        : 'bg-white/80 backdrop-blur-sm shadow-sm'
     }`}>
       <div className="container">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2 group">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+            <div className="w-9 h-9 bg-gradient-to-br from-indigo-600 to-emerald-500 rounded-xl flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
               <MapPin className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-gray-900">
-              Wisata<span className="text-primary-600">Jateng</span>
+            <span className="text-xl font-semibold text-slate-900">
+              Wisata<span className="text-indigo-600">Jateng</span>
             </span>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
-            {navigation.map((item) => (
+          <div className="hidden md:flex items-center space-x-6 lg:space-x-8">
+            {navigationItems.map((item) => (
               <Link
                 key={item.name}
                 to={item.href}
-                className={`text-gray-700 hover:text-primary-600 transition-colors duration-200 font-medium ${
-                  location.pathname === item.href ? 'text-primary-600' : ''
+                className={`text-sm font-medium transition-colors duration-200 ${
+                  location.pathname === item.href || (item.href.startsWith('/#') && location.pathname === '/')
+                    ? 'text-indigo-600'
+                    : 'text-slate-600 hover:text-indigo-600'
                 }`}
               >
                 {item.name}
@@ -69,74 +105,70 @@ const Navbar = () => {
           </div>
 
           {/* Desktop Actions */}
-          <div className="hidden md:flex items-center space-x-4">
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200"
-              aria-label="Toggle theme"
-            >
-              {isDark ? '🌙' : '☀️'}
-            </button>
-            
-            {token && user ? (
+          <div className="hidden md:flex items-center space-x-3">
+            {token && user && user.role !== 'admin' ? (
               <>
-                {user.role === 'admin' ? (
+                <button
+                  onClick={() => handleNavigation('/notifications')}
+                  className="relative p-2 rounded-full hover:bg-slate-100 transition-colors"
+                  title="Pesan Saya"
+                >
+                  <Bell className="w-5 h-5 text-slate-700" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] rounded-full px-1.5">{unreadCount}</span>
+                  )}
+                </button>
+                <div className="relative">
                   <button
-                    onClick={() => handleNavigation('/admin/dashboard')}
-                    className="text-sm text-gray-600 hover:text-indigo-600 transition-colors"
+                    onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                    className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:border-indigo-200 hover:text-indigo-600"
                   >
-                    Admin Panel
+                    <UserCircle className="w-4 h-4" />
+                    {user.name?.split(' ')[0] || 'Profil'}
+                    <ChevronDown className="w-4 h-4" />
                   </button>
-                ) : (
-                  <>
-                    <span className="text-sm text-gray-600">
-                      Halo, {user.name}
-                    </span>
-                    <button
-                      onClick={() => {
-                        logout();
-                        handleNavigation('/');
-                      }}
-                      className="text-sm text-red-500 hover:text-red-700 transition-colors"
-                    >
-                      Logout
-                    </button>
-                  </>
-                )}
+                  {isProfileDropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                      <Link
+                        to="/customer/profile"
+                        onClick={() => setIsProfileDropdownOpen(false)}
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        Profil Saya
+                      </Link>
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => {
+                    logout();
+                    handleNavigation('/');
+                  }}
+                  className="rounded-full border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:border-rose-200 hover:text-rose-600"
+                >
+                  <span className="flex items-center gap-2"><LogOut className="w-4 h-4" /> Logout</span>
+                </button>
               </>
             ) : (
-              <button
-                onClick={() => handleNavigation('/login')}
-                className="text-sm text-gray-600 hover:text-indigo-600 transition-colors"
-              >
-                Login
-              </button>
+              <>
+                <button
+                  onClick={() => handleNavigation('/login')}
+                  className="rounded-full border border-indigo-200 px-4 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50"
+                >
+                  Login
+                </button>
+                <button
+                  onClick={() => handleNavigation('/register')}
+                  className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700"
+                >
+                  Register
+                </button>
+              </>
             )}
-
-            <button
-              onClick={() => {
-                if (token && user) {
-                  handleNavigation('/customer/home');
-                } else {
-                  handleNavigation('/login');
-                }
-              }}
-              className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm"
-            >
-              Find Trip
-            </button>
           </div>
 
           {/* Mobile menu button */}
           <div className="md:hidden flex items-center space-x-2">
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200"
-              aria-label="Toggle theme"
-            >
-              {isDark ? '🌙' : '☀️'}
-            </button>
-            
             <button
               onClick={() => setIsOpen(!isOpen)}
               className="p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200"
@@ -154,35 +186,60 @@ const Navbar = () => {
         {/* Mobile Navigation */}
         {isOpen && (
           <div className="md:hidden py-4 border-t border-gray-200">
-            <div className="flex flex-col space-y-3">
-              {navigation.map((item) => (
+            <div className="flex flex-col space-y-2">
+              {navigationItems.map((item) => (
                 <button
                   key={item.name}
                   onClick={() => handleNavigation(item.href)}
-                  className={`text-left px-4 py-2 rounded-lg transition-colors duration-200 ${
+                  className={`text-left px-4 py-3 rounded-xl transition-colors duration-200 ${
                     location.pathname === item.href
-                      ? 'bg-primary-50 text-primary-600 font-medium'
-                      : 'text-gray-700 hover:bg-gray-50'
+                      ? 'bg-indigo-50 text-indigo-600 font-medium'
+                      : 'text-slate-700 hover:bg-slate-50'
                   }`}
                 >
-                  {item.name}
+                  <span className="flex items-center gap-2">
+                    {item.icon && <item.icon className="w-4 h-4" />}
+                    {item.name}
+                  </span>
                 </button>
               ))}
-              
-              <div className="pt-3 border-t border-gray-200">
-                <button
-                  onClick={() => handleNavigation('/admin/login')}
-                  className="w-full text-left px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  Admin Portal
-                </button>
-                <button
-                  onClick={() => handleNavigation('/packages')}
-                  className="w-full btn-primary"
-                >
-                  Find Trip
-                </button>
-              </div>
+              {token && user && user.role !== 'admin' ? (
+                <>
+                  <button
+                    onClick={() => handleNavigation('/notifications')}
+                    className="text-left px-4 py-3 rounded-xl transition-colors duration-200 text-slate-700 hover:bg-slate-50"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-2"><Bell className="w-4 h-4" /></span>
+                      {unreadCount > 0 && <span className="bg-rose-500 text-white text-xs rounded-full px-2">{unreadCount}</span>}
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => {
+                      logout();
+                      handleNavigation('/');
+                    }}
+                    className="text-left px-4 py-3 rounded-xl transition-colors duration-200 text-slate-700 hover:bg-slate-50"
+                  >
+                    <span className="flex items-center gap-2"><LogOut className="w-4 h-4" /> Logout</span>
+                  </button>
+                </>
+              ) : (
+                <div className="pt-3 border-t border-slate-200 flex flex-col gap-2">
+                  <button
+                    onClick={() => handleNavigation('/login')}
+                    className="w-full rounded-full border border-indigo-200 px-4 py-2 text-sm font-medium text-indigo-600"
+                  >
+                    Login
+                  </button>
+                  <button
+                    onClick={() => handleNavigation('/register')}
+                    className="w-full rounded-full bg-indigo-600 px-4 py-2 text-sm font-medium text-white"
+                  >
+                    Register
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}

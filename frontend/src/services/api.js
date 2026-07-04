@@ -78,7 +78,7 @@ api.interceptors.response.use(
 );
 
 // API Service methods
-export const apiService = {
+const apiService = {
   // Cities
   getCities: () => api.get('/cities'),
   getCityById: (id) => api.get(`/cities/${id}`),
@@ -96,6 +96,7 @@ export const apiService = {
   getBookingById: (id) => api.get(`/booking/${id}`),
   getAllBookings: (params) => api.get('/booking', { params }),
   getBookingsByEmail: (email, params) => api.get('/booking/email', { params: { email, ...params } }),
+  getMyBookings: (params) => api.get('/booking/my-bookings', { params }),
   updateBookingStatus: (id, status) => api.put(`/booking/${id}/status`, { status }),
   cancelBooking: (id) => api.put(`/booking/${id}/cancel`),
   confirmBooking: (id) => api.put(`/booking/${id}/confirm`),
@@ -118,12 +119,27 @@ export const apiService = {
   getVehicleById: (id) => api.get(`/vehicles/${id}`),
   getVehiclesByCapacity: (minCapacity, maxCapacity) => api.get(`/vehicles/capacity/${minCapacity}/${maxCapacity}`),
   getRecommendedVehicle: (peopleCount) => api.get('/vehicles/recommend', { params: { people_count: peopleCount } }),
+  createVehicle: (data) => api.post('/vehicles', data, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  }),
+  updateVehicle: (id, data) => api.put(`/vehicles/${id}`, data, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  }),
+  deleteVehicle: (id) => api.delete(`/vehicles/${id}`),
 
   // Tour Guides
   getAllTourGuides: (params) => api.get('/tour-guides', { params }),
   getTourGuideById: (id) => api.get(`/tour-guides/${id}`),
   getTourGuidesBySpecialization: (specialization) => api.get(`/tour-guides/specialization/${specialization}`),
   getTopRatedTourGuides: (limit = 5) => api.get('/tour-guides/top-rated', { params: { limit } }),
+  createTourGuide: (data) => api.post('/tour-guides', data),
+  updateTourGuide: (id, data) => api.put(`/tour-guides/${id}`, data),
+  deleteTourGuide: (id) => api.delete(`/tour-guides/${id}`),
+  updateTourGuideRating: (id, rating) => api.put(`/tour-guides/${id}/rating`, { rating }),
 
   // Payments
   createPayment: (data) => api.post('/payments', data),
@@ -152,14 +168,32 @@ export const apiService = {
   getAdminDashboard: (params) => api.get('/admin/dashboard', { params }),
   getAdminBookings: (params) => api.get('/admin/bookings', { params }),
   getAdminPayments: (params) => api.get('/admin/payments', { params }),
-  verifyPayment: (id, status) => api.put(`/admin/payments/${id}/verify`, { status }),
+  verifyPayment: (id, status, adminNotes) => api.put(`/admin/payments/${id}/verify`, { status, admin_notes: adminNotes }),
+  deletePayment: (id) => api.delete(`/payments/${id}`),
+  getPaymentProof: (id) => api.get(`/payments/${id}/proof`, { responseType: 'blob' }),
   getAdminCustomers: (params) => api.get('/admin/customers', { params }),
   getAdminSmartTrips: (params) => api.get('/admin/smart-trips', { params }),
   updateSmartTripStatus: (id, status) => api.put(`/admin/smart-trips/${id}/status`, { status }),
   getAnalytics: (params) => api.get('/admin/analytics', { params }),
+  getAdminPackages: (params) => api.get('/admin/packages', { params }),
+  createAdminPackage: (data) => api.post('/admin/packages', data),
+  updateAdminPackage: (id, data) => api.put(`/admin/packages/${id}`, data),
+  deleteAdminPackage: (id) => api.delete(`/admin/packages/${id}`),
+  suggestPackagePlaces: (cityId) => api.get('/admin/packages/suggest-places', { params: { city_id: cityId } }),
+
+  // Activity Logs
+  getAdminActivityLogs: (params) => api.get('/admin/activity-logs', { params }),
+  getActivityLogFilters: () => api.get('/admin/activity-logs/filters'),
+
+  // Notifications
+  getNotifications: (params) => api.get('/notifications', { params }),
+  getNotificationsUnreadCount: () => api.get('/notifications/unread-count'),
+  markNotificationAsRead: (id) => api.put(`/notifications/${id}/read`),
+  adminSendNotification: (data) => api.post('/notifications/admin-send', data),
 
   // Health check
   healthCheck: () => api.get('/health'),
 };
 
-export default api;
+export { apiService };
+export default apiService;

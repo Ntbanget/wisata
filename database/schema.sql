@@ -94,6 +94,23 @@ CREATE TABLE users (
     INDEX idx_email (email)
 );
 
+-- Notifications table
+CREATE TABLE IF NOT EXISTS notifications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    booking_id INT NULL,
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    type ENUM('payment_approved','payment_rejected','payment_failed','booking_expired','admin_message','trip_reminder','general') DEFAULT 'general',
+    created_by ENUM('SYSTEM','ADMIN') DEFAULT 'SYSTEM',
+    admin_id INT NULL,
+    admin_name VARCHAR(100) NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE SET NULL
+);
+
 -- Reviews table
 CREATE TABLE reviews (
     id INT AUTO_INCREMENT PRIMARY KEY,

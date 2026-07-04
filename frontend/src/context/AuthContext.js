@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import api from '../services/api';
+import apiService from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -32,7 +32,7 @@ export const AuthProvider = ({ children }) => {
     try {
       // Use appropriate endpoint based on role
       const endpoint = isAdmin ? '/auth/admin/login' : '/auth/login';
-      const response = await api.post(endpoint, { email, password });
+      const response = await apiService.login(email, password);
       
       localStorage.setItem('token', response.token);
       localStorage.setItem('user', JSON.stringify(response.user));
@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (name, email, password, phone) => {
     try {
-      const response = await api.post('/auth/register', { name, email, password, phone });
+      const response = await apiService.register(name, email, password, phone);
       localStorage.setItem('token', response.token);
       localStorage.setItem('user', JSON.stringify(response.user));
       setToken(response.token);

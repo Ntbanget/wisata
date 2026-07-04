@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Filter, Search, Eye, Check, X, MoreVertical } from 'lucide-react';
-import { apiService } from '../../services/api';
+import { Calendar, Filter, Search, Eye, Check, X } from 'lucide-react';
+import apiService from '../../services/api';
 import { formatCurrency } from '../../utils/helpers';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
@@ -13,6 +13,12 @@ const AdminBookings = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [showSendMessage, setShowSendMessage] = useState(false);
+  const [messageTitle, setMessageTitle] = useState('');
+  const [messageBody, setMessageBody] = useState('');
+  const [messageType, setMessageType] = useState('admin_message');
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [sendError, setSendError] = useState(null);
 
   useEffect(() => {
     loadBookings();
@@ -23,7 +29,7 @@ const AdminBookings = () => {
       setIsLoading(true);
       setError(null);
       const response = await apiService.getAdminBookings();
-      setBookings(response.data?.bookings || []);
+      setBookings(response.data || []);
     } catch (err) {
       console.error('Error loading bookings:', err);
       setError('Failed to load bookings');
@@ -43,9 +49,12 @@ const AdminBookings = () => {
   };
 
   const filteredBookings = bookings.filter(booking => {
-    const matchesFilter = filter === 'all' || booking.booking_status === filter;
+    const bookingStatus = booking.status?.toUpperCase() || '';
+    const normalizedFilter = filter === 'pending' ? 'PENDING_PAYMENT' : filter.toUpperCase();
+    const matchesFilter = filter === 'all' || bookingStatus === normalizedFilter;
     const matchesSearch = searchTerm === '' || 
-      booking.user_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      booking.user_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      booking.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       booking.id.toString().includes(searchTerm);
     return matchesFilter && matchesSearch;
   });
@@ -97,6 +106,7 @@ const AdminBookings = () => {
               <option value="pending">Pending</option>
               <option value="confirmed">Confirmed</option>
               <option value="cancelled">Cancelled</option>
+              <option value="payment_rejected">Payment Rejected</option>
               <option value="completed">Completed</option>
             </select>
           </div>
@@ -159,13 +169,13 @@ const AdminBookings = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-3 py-1 text-xs font-medium rounded-full ${
-                      booking.booking_status === 'confirmed' ? 'bg-green-100 text-green-700' :
-                      booking.booking_status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                      booking.booking_status === 'cancelled' ? 'bg-red-100 text-red-700' :
-                      booking.booking_status === 'completed' ? 'bg-blue-100 text-blue-700' :
+                      booking.status === 'CONFIRMED' ? 'bg-green-100 text-green-700' :
+                      booking.status === 'PENDING_PAYMENT' ? 'bg-yellow-100 text-yellow-700' :
+                      booking.status === 'CANCELLED' ? 'bg-red-100 text-red-700' :
+                      booking.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700' :
                       'bg-gray-100 text-gray-700'
                     }`}>
-                      {booking.booking_status}
+                      {booking.status}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -180,17 +190,17 @@ const AdminBookings = () => {
                       >
                         <Eye className="w-4 h-4 text-gray-600" />
                       </button>
-                      {booking.booking_status === 'pending' && (
+                      {booking.status === 'PENDING_PAYMENT' && (
                         <>
                           <button
-                            onClick={() => handleUpdateStatus(booking.id, 'confirmed')}
+                            onClick={() => handleUpdateStatus(booking.id, 'CONFIRMED')}
                             className="p-2 hover:bg-green-100 rounded-lg transition-colors"
                             title="Confirm"
                           >
                             <Check className="w-4 h-4 text-green-600" />
                           </button>
                           <button
-                            onClick={() => handleUpdateStatus(booking.id, 'cancelled')}
+                            onClick={() => handleUpdateStatus(booking.id, 'CANCELLED')}
                             className="p-2 hover:bg-red-100 rounded-lg transition-colors"
                             title="Cancel"
                           >
@@ -235,6 +245,14 @@ const AdminBookings = () => {
               </div>
             </div>
             <div className="p-6 border-t border-gray-200 flex justify-end">
+              <div className="flex items-center gap-3 mr-auto">
+                <button
+                  onClick={() => setShowSendMessage(true)}
+                  className="btn-outline"
+                >
+                  Send Message
+                </button>
+              </div>
               <button
                 onClick={() => {
                   setShowDetails(false);
@@ -243,6 +261,90 @@ const AdminBookings = () => {
                 className="btn-outline"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Send Message Modal */}
+      {showSendMessage && selectedBooking && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">Kirim Pesan ke User #{selectedBooking.id}</h2>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Judul</label>
+                <input
+                  type="text"
+                  value={messageTitle}
+                  onChange={(e) => setMessageTitle(e.target.value)}
+                  className="input-field w-full"
+                  placeholder="Judul pesan"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Tipe Pesan</label>
+                <select value={messageType} onChange={(e) => setMessageType(e.target.value)} className="input-field">
+                  <option value="admin_message">Admin Message</option>
+                  <option value="trip_reminder">Trip Reminder</option>
+                  <option value="general">General</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Isi Pesan</label>
+                <textarea
+                  value={messageBody}
+                  onChange={(e) => setMessageBody(e.target.value)}
+                  className="input-field w-full h-32"
+                  placeholder="Tulis pesan kepada user..."
+                />
+              </div>
+              {sendError && <ErrorMessage error={sendError} />}
+            </div>
+            <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={() => setShowSendMessage(false)}
+                className="btn-outline"
+                disabled={sendingMessage}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  setSendError(null);
+                  if (!messageTitle || !messageBody) {
+                    setSendError('Judul dan isi pesan harus diisi');
+                    return;
+                  }
+                  try {
+                    setSendingMessage(true);
+                    await apiService.adminSendNotification({
+                      user_id: selectedBooking.user_id,
+                      booking_id: selectedBooking.id,
+                      title: messageTitle,
+                      message: messageBody,
+                      type: messageType
+                    });
+                    setShowSendMessage(false);
+                    setMessageTitle('');
+                    setMessageBody('');
+                    setMessageType('admin_message');
+                    // refresh bookings list
+                    await loadBookings();
+                  } catch (err) {
+                    console.error('Error sending admin message:', err);
+                    setSendError(err?.error || 'Failed to send message');
+                  } finally {
+                    setSendingMessage(false);
+                  }
+                }}
+                className="btn-primary"
+                disabled={sendingMessage}
+              >
+                {sendingMessage ? 'Sending...' : 'Send'}
               </button>
             </div>
           </div>

@@ -4,7 +4,10 @@ class VehicleController {
   // Get all vehicles (public)
   static async getAllVehicles(req, res) {
     try {
+      console.log('=== GET /api/vehicles ===');
+      console.log('SQL: SELECT * FROM vehicles WHERE is_active = 1 ORDER BY category, capacity');
       const vehicles = await Vehicle.getAll();
+      console.log('RESULT: Found', vehicles.length, 'vehicles');
       res.json({
         success: true,
         data: vehicles,
@@ -92,7 +95,13 @@ class VehicleController {
   // Create vehicle (admin only)
   static async createVehicle(req, res) {
     try {
-      const { name, category, capacity, price_per_day, image_url, description } = req.body;
+      const { name, category, capacity, price_per_day, image_url, description, is_active } = req.body;
+
+      // Handle uploaded image
+      let finalImageUrl = image_url;
+      if (req.file) {
+        finalImageUrl = `/assets/vehicles/${req.file.filename}`;
+      }
 
       // Validate input
       if (!name || !category || !capacity || !price_per_day) {
@@ -107,8 +116,9 @@ class VehicleController {
         category,
         capacity,
         price_per_day,
-        image_url,
-        description
+        image_url: finalImageUrl,
+        description,
+        is_active: is_active !== undefined ? is_active : 1
       });
 
       const vehicle = await Vehicle.getById(vehicleId);
@@ -131,16 +141,23 @@ class VehicleController {
   static async updateVehicle(req, res) {
     try {
       const { id } = req.params;
-      const { name, category, capacity, price_per_day, image_url, description, available } = req.body;
+      const { name, category, capacity, price_per_day, image_url, description, is_active } = req.body;
 
       const updateData = {};
       if (name !== undefined) updateData.name = name;
       if (category !== undefined) updateData.category = category;
       if (capacity !== undefined) updateData.capacity = capacity;
       if (price_per_day !== undefined) updateData.price_per_day = price_per_day;
-      if (image_url !== undefined) updateData.image_url = image_url;
+
+      // Handle uploaded image
+      if (req.file) {
+        updateData.image_url = `/assets/vehicles/${req.file.filename}`;
+      } else if (image_url !== undefined) {
+        updateData.image_url = image_url;
+      }
+
       if (description !== undefined) updateData.description = description;
-      if (available !== undefined) updateData.available = available;
+      if (is_active !== undefined) updateData.is_active = is_active;
 
       await Vehicle.update(id, updateData);
       const vehicle = await Vehicle.getById(id);

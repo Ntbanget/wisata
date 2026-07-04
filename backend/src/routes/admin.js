@@ -31,4 +31,15 @@ router.get('/tour-guides', authenticateAdmin, adminOnly, AdminController.getAllT
 // Analytics
 router.get('/analytics', authenticateAdmin, adminOnly, AdminController.getAnalytics);
 
+// Package management
+router.get('/packages', authenticateAdmin, adminOnly, AdminController.getAdminPackages);
+router.post('/packages', authenticateAdmin, adminOnly, AdminController.createAdminPackage);
+router.put('/packages/:id', authenticateAdmin, adminOnly, AdminController.updateAdminPackage);
+router.delete('/packages/:id', authenticateAdmin, adminOnly, AdminController.deleteAdminPackage);
+router.get('/packages/suggest-places', authenticateAdmin, adminOnly, AdminController.suggestPlaces);
+
+// Activity Logs
+router.get('/activity-logs', authenticateAdmin, adminOnly, AdminController.getActivityLogs);
+router.get('/activity-logs/filters', authenticateAdmin, adminOnly, AdminController.getActivityLogFilters);
+
 module.exports = router;

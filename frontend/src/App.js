@@ -8,7 +8,13 @@ import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminLayout from './components/AdminLayout';
 import LandingPage from './pages/LandingPage';
+import AboutPage from './pages/AboutPage';
+import ContactPage from './pages/ContactPage';
 import CustomerHomePage from './pages/customer/CustomerHomePage';
+import CustomerBookings from './pages/customer/CustomerBookings';
+import BookingDetail from './pages/customer/BookingDetail';
+import Notifications from './pages/customer/Notifications';
+import ProfilePage from './pages/customer/ProfilePage';
 import PackagePage from './pages/PackagePage';
 import DetailPage from './pages/DetailPage';
 import MapPage from './pages/MapPage';
@@ -28,30 +34,8 @@ import AdminTourGuides from './pages/admin/AdminTourGuides';
 import AdminPackages from './pages/admin/AdminPackages';
 import AdminSmartTrips from './pages/admin/AdminSmartTrips';
 import AdminSettings from './pages/admin/AdminSettings';
+import AdminActivityLogs from './pages/admin/AdminActivityLogs';
 import './index.css';
-
-// Auth redirect component
-const AuthRedirect = () => {
-  const { isAuthenticated, isAdmin, loading } = useAuth();
-  
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-      </div>
-    );
-  }
-  
-  if (!isAuthenticated()) {
-    return <Navigate to="/login" replace />;
-  }
-  
-  if (isAdmin()) {
-    return <Navigate to="/admin/dashboard" replace />;
-  }
-  
-  return <Navigate to="/customer/home" replace />;
-};
 
 // Layout wrapper component to conditionally render Navbar/Footer
 const LayoutWrapper = ({ children }) => {
@@ -81,9 +65,16 @@ function App() {
               <div className="min-h-screen flex flex-col bg-gray-50">
                 <main className="flex-grow pt-16">
                   <Routes>
-                    <Route path="/" element={<AuthRedirect />} />
-                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/" element={<LandingPage />} />
+                    <Route path="/about" element={<AboutPage />} />
+                    <Route path="/contact" element={<ContactPage />} />
+                    <Route path="/login" element={<LoginPage initialMode="login" />} />
+                    <Route path="/register" element={<LoginPage initialMode="register" />} />
                     <Route path="/admin/login" element={<AdminLoginPage />} />
+                    
+                    {/* Public browsing routes */}
+                    <Route path="/packages" element={<PackagePage />} />
+                    <Route path="/detail/:packageId" element={<DetailPage />} />
                     
                     {/* Protected User Routes */}
                     <Route path="/customer/home" element={
@@ -91,14 +82,19 @@ function App() {
                         <CustomerHomePage />
                       </ProtectedRoute>
                     } />
-                    <Route path="/packages" element={
+                    <Route path="/customer/bookings" element={
                       <ProtectedRoute>
-                        <PackagePage />
+                        <CustomerBookings />
                       </ProtectedRoute>
                     } />
-                    <Route path="/detail/:packageId" element={
+                    <Route path="/customer/bookings/:id" element={
                       <ProtectedRoute>
-                        <DetailPage />
+                        <BookingDetail />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/notifications" element={
+                      <ProtectedRoute>
+                        <Notifications />
                       </ProtectedRoute>
                     } />
                     <Route path="/map/:packageId" element={
@@ -119,6 +115,11 @@ function App() {
                     <Route path="/success/:bookingId" element={
                       <ProtectedRoute>
                         <SuccessPage />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/customer/profile" element={
+                      <ProtectedRoute>
+                        <ProfilePage />
                       </ProtectedRoute>
                     } />
                     {/* Old /custom route is deprecated. Packages are FIXED; users
@@ -142,6 +143,7 @@ function App() {
                       <Route path="packages" element={<AdminPackages />} />
                       <Route path="smart-trips" element={<AdminSmartTrips />} />
                       <Route path="settings" element={<AdminSettings />} />
+                      <Route path="activity-logs" element={<AdminActivityLogs />} />
                     </Route>
                   </Routes>
                 </main>

@@ -1,6 +1,25 @@
+const fs = require('fs');
+const path = require('path');
 const { query } = require('./database');
 
 class Payment {
+  static getValidStatuses() {
+    return ['pending', 'waiting_verification', 'paid', 'rejected', 'refunded'];
+  }
+
+  static normalizeStatus(status) {
+    if (status === undefined || status === null) {
+      return null;
+    }
+
+    const normalized = String(status).trim().toLowerCase();
+    if (normalized === 'approved') return 'paid';
+    if (['success', 'verified', 'paid_out'].includes(normalized)) return 'paid';
+    if (normalized === 'waitingverification') return 'waiting_verification';
+    if (this.getValidStatuses().includes(normalized)) return normalized;
+    return null;
+  }
+
   // Create new payment
   static async create(paymentData) {
     const { booking_id, user_id, amount, payment_method, proof_image, status = 'pending' } = paymentData;
@@ -8,21 +27,21 @@ class Payment {
       INSERT INTO payments (booking_id, user_id, amount, payment_method, proof_image, status)
       VALUES (?, ?, ?, ?, ?, ?)
     `;
-    const [result] = await query(sql, [booking_id, user_id, amount, payment_method, proof_image, status]);
+    const result = await query(sql, [booking_id, user_id, amount, payment_method, proof_image, status]);
     return result.insertId;
   }
 
   // Get payment by ID
   static async getById(id) {
     const sql = 'SELECT * FROM payments WHERE id = ?';
-    const [payments] = await query(sql, [id]);
+    const payments = await query(sql, [id]);
     return payments[0];
   }
 
   // Get payments by booking ID
   static async getByBookingId(bookingId) {
     const sql = 'SELECT * FROM payments WHERE booking_id = ? ORDER BY created_at DESC';
-    const [payments] = await query(sql, [bookingId]);
+    const payments = await query(sql, [bookingId]);
     return payments;
   }
 
@@ -30,16 +49,16 @@ class Payment {
   static async getByUserId(userId, page = 1, limit = 20) {
     const offset = (page - 1) * limit;
     const sql = `
-      SELECT * FROM payments 
-      WHERE user_id = ? 
-      ORDER BY created_at DESC 
+      SELECT * FROM payments
+      WHERE user_id = ?
+      ORDER BY created_at DESC
       LIMIT ? OFFSET ?
     `;
-    const [payments] = await query(sql, [userId, limit, offset]);
-    
+    const payments = await query(sql, [userId, limit, offset]);
+
     // Get total count
-    const [countResult] = await query('SELECT COUNT(*) as total FROM payments WHERE user_id = ?', [userId]);
-    const total = countResult.total;
+    const countResult = await query('SELECT COUNT(*) as total FROM payments WHERE user_id = ?', [userId]);
+    const total = countResult[0].total;
     
     return {
       payments,
@@ -54,19 +73,28 @@ class Payment {
 
   // Get payments by status
   static async getByStatus(status, page = 1, limit = 20) {
+    const normalizedStatus = this.normalizeStatus(status) || status;
     const offset = (page - 1) * limit;
     const sql = `
-      SELECT * FROM payments 
-      WHERE status = ? 
-      ORDER BY created_at DESC 
+      SELECT p.*, u.name as user_name, u.email as user_email
+      FROM payments p
+      LEFT JOIN users u ON p.user_id = u.id
+      WHERE p.status = ?
+      ORDER BY p.created_at DESC
       LIMIT ? OFFSET ?
     `;
-    const [payments] = await query(sql, [status, limit, offset]);
-    
+
+    console.log("=== ADMIN PAYMENT SQL ===", sql);
+    console.log("=== ADMIN PAYMENT PARAMS ===", { status: normalizedStatus, limit, offset });
+
+    const payments = await query(sql, [normalizedStatus, limit, offset]);
+
+    console.log("=== ADMIN PAYMENT RESULT ===", payments);
+
     // Get total count
-    const [countResult] = await query('SELECT COUNT(*) as total FROM payments WHERE status = ?', [status]);
-    const total = countResult.total;
-    
+    const countResult = await query('SELECT COUNT(*) as total FROM payments WHERE status = ?', [normalizedStatus]);
+    const total = countResult[0].total;
+
     return {
       payments,
       pagination: {
@@ -80,12 +108,17 @@ class Payment {
 
   // Update payment status
   static async updateStatus(id, status, verifiedBy = null) {
+    const normalizedStatus = this.normalizeStatus(status);
+    if (!normalizedStatus) {
+      throw new Error(`Invalid payment status: ${status}`);
+    }
+
     const sql = `
       UPDATE payments 
       SET status = ?, verified_by = ?, verified_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `;
-    await query(sql, [status, verifiedBy, id]);
+    await query(sql, [normalizedStatus, verifiedBy, id]);
     return await this.getById(id);
   }
 
@@ -131,8 +164,28 @@ class Payment {
     return await this.getById(id);
   }
 
-  // Delete payment
+  // Delete payment and remove uploaded proof image if present
   static async delete(id) {
+    const payment = await this.getById(id);
+    if (!payment) {
+      throw new Error(`Payment with id ${id} not found`);
+    }
+
+    if (payment.proof_image) {
+      const proofPath = payment.proof_image.startsWith('/')
+        ? payment.proof_image.slice(1)
+        : payment.proof_image;
+      const filePath = path.join(process.cwd(), proofPath);
+
+      try {
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      } catch (err) {
+        console.warn(`Unable to remove proof image for payment ${id}:`, err.message);
+      }
+    }
+
     const sql = 'DELETE FROM payments WHERE id = ?';
     await query(sql, [id]);
   }
@@ -140,7 +193,7 @@ class Payment {
   // Get payment statistics
   static async getStats(startDate = null, endDate = null) {
     let sql = `
-      SELECT 
+      SELECT
         COUNT(*) as total_payments,
         SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
         SUM(CASE WHEN status = 'waiting_verification' THEN 1 ELSE 0 END) as waiting_verification,
@@ -158,8 +211,35 @@ class Payment {
       params.push(startDate, endDate);
     }
 
-    const [result] = await query(sql, params);
-    return result;
+    const result = await query(sql, params);
+    return result[0];
+  }
+
+  // Get all payments (with pagination)
+  static async getAll(page = 1, limit = 20) {
+    const offset = (page - 1) * limit;
+    const sql = `
+      SELECT p.*, u.name as user_name, u.email as user_email
+      FROM payments p
+      LEFT JOIN users u ON p.user_id = u.id
+      ORDER BY p.created_at DESC
+      LIMIT ? OFFSET ?
+    `;
+    const payments = await query(sql, [limit, offset]);
+
+    // Get total count
+    const countResult = await query('SELECT COUNT(*) as total FROM payments');
+    const total = countResult[0].total;
+
+    return {
+      payments,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
   }
 }
 

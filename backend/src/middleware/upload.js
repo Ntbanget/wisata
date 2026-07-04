@@ -2,7 +2,7 @@ const multer = require('multer');
 const path = require('path');
 
 // Configure storage for payment proof uploads
-const storage = multer.diskStorage({
+const paymentStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'uploads/payments/');
   },
@@ -12,25 +12,57 @@ const storage = multer.diskStorage({
   }
 });
 
-// File filter to accept only images and PDFs
+// Configure storage for vehicle image uploads
+const vehicleStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'public/assets/vehicles/');
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'vehicle-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+// File filter to accept only images (JPG, JPEG, PNG) for payment proofs
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = /jpeg|jpg|png|gif|pdf/;
+  const allowedTypes = /jpeg|jpg|png/;
   const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
   const mimetype = allowedTypes.test(file.mimetype);
 
   if (mimetype && extname) {
     return cb(null, true);
   } else {
-    cb(new Error('Invalid file type. Only JPEG, PNG, GIF, and PDF files are allowed.'));
+    cb(new Error('Invalid file type. Only JPEG, JPG, and PNG files are allowed for payment proofs.'));
   }
 };
 
-const upload = multer({
-  storage: storage,
+// File filter for vehicle images (images only)
+const imageFilter = (req, file, cb) => {
+  const allowedTypes = /jpeg|jpg|png|gif/;
+  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+  const mimetype = allowedTypes.test(file.mimetype);
+
+  if (mimetype && extname) {
+    return cb(null, true);
+  } else {
+    cb(new Error('Invalid file type. Only JPEG, PNG, and GIF files are allowed.'));
+  }
+};
+
+const uploadPayment = multer({
+  storage: paymentStorage,
   limits: {
     fileSize: 5 * 1024 * 1024 // 5MB limit
   },
   fileFilter: fileFilter
 });
 
-module.exports = upload;
+const uploadVehicle = multer({
+  storage: vehicleStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  },
+  fileFilter: imageFilter
+});
+
+module.exports = { uploadPayment, uploadVehicle };

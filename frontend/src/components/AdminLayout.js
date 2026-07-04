@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Calendar, 
-  CreditCard, 
-  Users, 
-  MapPin, 
-  Building, 
-  Car, 
-  User, 
-  Package, 
-  Brain, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Calendar,
+  CreditCard,
+  Users,
+  MapPin,
+  Building,
+  Car,
+  User,
+  Package,
+  Settings,
+  ClipboardList,
   LogOut,
   Menu,
   X
@@ -34,8 +34,8 @@ const AdminLayout = () => {
     { path: '/admin/vehicles', icon: Car, label: 'Vehicles' },
     { path: '/admin/tour-guides', icon: User, label: 'Tour Guides' },
     { path: '/admin/packages', icon: Package, label: 'Packages' },
-    { path: '/admin/smart-trips', icon: Brain, label: 'Smart Trip Requests' },
     { path: '/admin/settings', icon: Settings, label: 'Settings' },
+    { path: '/admin/activity-logs', icon: ClipboardList, label: 'Activity Log' },
   ];
 
   const handleLogout = () => {

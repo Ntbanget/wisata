@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { CreditCard, Filter, Search, Check, X, Eye } from 'lucide-react';
-import { apiService } from '../../services/api';
+import { Filter, Search, Check, X, Eye, Trash2 } from 'lucide-react';
+import apiService from '../../services/api';
 import { formatCurrency } from '../../utils/helpers';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
@@ -13,6 +13,70 @@ const AdminPayments = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [proofUrl, setProofUrl] = useState(null);
+  const [proofLoading, setProofLoading] = useState(false);
+  const [proofError, setProofError] = useState(null);
+
+  const getProofImageUrl = (payment) => {
+    if (!payment?.proof_image) return null;
+    return `/api/payments/${payment.id}/proof`;
+  };
+
+  const loadProofImage = async (payment) => {
+    if (!payment?.proof_image) {
+      setProofError('Tidak ada bukti transfer.');
+      return;
+    }
+
+    setProofError(null);
+    setProofLoading(true);
+    setProofUrl(null);
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/payments/${payment.id}/proof`, {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : ''
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Proof fetch failed:', response.status, errorText);
+        throw new Error(errorText || `HTTP ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      if (!blob || blob.size === 0) {
+        throw new Error('Empty proof image');
+      }
+
+      const objectUrl = URL.createObjectURL(blob);
+      setProofUrl(objectUrl);
+    } catch (err) {
+      console.error('Error loading proof image:', err);
+      setProofError('Gagal memuat bukti transfer.');
+    } finally {
+      setProofLoading(false);
+    }
+  };
+
+  const openPaymentDetails = (payment) => {
+    setSelectedPayment(payment);
+    setShowDetails(true);
+    loadProofImage(payment);
+  };
+
+  const closePaymentDetails = () => {
+    setShowDetails(false);
+    setSelectedPayment(null);
+    setProofError(null);
+    setProofLoading(false);
+    if (proofUrl) {
+      URL.revokeObjectURL(proofUrl);
+      setProofUrl(null);
+    }
+  };
 
   useEffect(() => {
     loadPayments();
@@ -23,7 +87,10 @@ const AdminPayments = () => {
       setIsLoading(true);
       setError(null);
       const response = await apiService.getAdminPayments();
-      setPayments(response.data?.payments || []);
+      console.log('=== ADMIN PAYMENTS RESPONSE ===', response);
+      const paymentsData = response?.data || response?.payments || response || [];
+      console.log('=== FRONTEND PAYMENTS DATA ===', paymentsData);
+      setPayments(Array.isArray(paymentsData) ? paymentsData : []);
     } catch (err) {
       console.error('Error loading payments:', err);
       setError('Failed to load payments');
@@ -34,7 +101,9 @@ const AdminPayments = () => {
 
   const handleVerifyPayment = async (paymentId, status) => {
     try {
-      await apiService.verifyPayment(paymentId, status);
+      const statusLower = status.toLowerCase();
+      const adminNotes = statusLower === 'approved' ? 'Approved by admin' : 'Rejected by admin';
+      await apiService.verifyPayment(paymentId, statusLower, adminNotes);
       loadPayments();
     } catch (err) {
       console.error('Error verifying payment:', err);
@@ -42,8 +111,24 @@ const AdminPayments = () => {
     }
   };
 
+  const handleDeletePayment = async (paymentId) => {
+    if (!window.confirm('Are you sure you want to delete this payment?')) {
+      return;
+    }
+
+    try {
+      await apiService.deletePayment(paymentId);
+      loadPayments();
+    } catch (err) {
+      console.error('Error deleting payment:', err);
+      setError('Failed to delete payment');
+    }
+  };
+
   const filteredPayments = payments.filter(payment => {
-    const matchesFilter = filter === 'all' || payment.status === filter;
+    const normalizedFilter = filter === 'approved' ? 'paid' : filter;
+    const matchesFilter = filter === 'all' || 
+      payment.status?.toLowerCase() === normalizedFilter.toLowerCase();
     const matchesSearch = searchTerm === '' || 
       payment.user_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       payment.id.toString().includes(searchTerm);
@@ -95,7 +180,6 @@ const AdminPayments = () => {
             >
               <option value="all">All Status</option>
               <option value="pending">Pending</option>
-              <option value="waiting_verification">Waiting Verification</option>
               <option value="paid">Paid</option>
               <option value="rejected">Rejected</option>
               <option value="refunded">Refunded</option>
@@ -105,8 +189,8 @@ const AdminPayments = () => {
       </div>
 
       {/* Payments Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <table className="w-full">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-x-auto">
+        <table className="w-full min-w-[900px]">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -123,6 +207,12 @@ const AdminPayments = () => {
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Method
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Bukti Transfer
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Created At
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Status
@@ -159,40 +249,55 @@ const AdminPayments = () => {
                     {payment.payment_method}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
+                    {payment.proof_image ? (
+                      <div className="flex items-center gap-3">
+                        <div className="w-16 h-12 rounded-md border border-gray-200 bg-gray-50 flex items-center justify-center text-xs text-gray-500">
+                          Proof
+                        </div>
+                        <button
+                          onClick={() => openPaymentDetails(payment)}
+                          className="text-blue-600 hover:text-blue-800 text-sm"
+                        >
+                          View
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 text-sm">Belum ada</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {payment.created_at ? new Date(payment.created_at).toLocaleString() : '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-3 py-1 text-xs font-medium rounded-full ${
-                      payment.status === 'paid' ? 'bg-green-100 text-green-700' :
-                      payment.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                      payment.status === 'waiting_verification' ? 'bg-blue-100 text-blue-700' :
-                      payment.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                      payment.status === 'refunded' ? 'bg-purple-100 text-purple-700' :
+                      payment.status?.toLowerCase() === 'paid' ? 'bg-green-100 text-green-700' :
+                      payment.status?.toLowerCase() === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                      payment.status?.toLowerCase() === 'rejected' ? 'bg-red-100 text-red-700' :
                       'bg-gray-100 text-gray-700'
                     }`}>
-                      {payment.status.replace(/_/g, ' ')}
+                      {payment.status}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     <div className="flex items-center space-x-2">
                       <button
-                        onClick={() => {
-                          setSelectedPayment(payment);
-                          setShowDetails(true);
-                        }}
+                        onClick={() => openPaymentDetails(payment)}
                         className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                         title="View Details"
                       >
                         <Eye className="w-4 h-4 text-gray-600" />
                       </button>
-                      {(payment.status === 'pending' || payment.status === 'waiting_verification') && (
+                      {payment.status?.toLowerCase() === 'pending' && (
                         <>
                           <button
-                            onClick={() => handleVerifyPayment(payment.id, 'paid')}
+                            onClick={() => handleVerifyPayment(payment.id, 'APPROVED')}
                             className="p-2 hover:bg-green-100 rounded-lg transition-colors"
                             title="Approve"
                           >
                             <Check className="w-4 h-4 text-green-600" />
                           </button>
                           <button
-                            onClick={() => handleVerifyPayment(payment.id, 'rejected')}
+                            onClick={() => handleVerifyPayment(payment.id, 'REJECTED')}
                             className="p-2 hover:bg-red-100 rounded-lg transition-colors"
                             title="Reject"
                           >
@@ -200,6 +305,13 @@ const AdminPayments = () => {
                           </button>
                         </>
                       )}
+                      <button
+                        onClick={() => handleDeletePayment(payment.id)}
+                        className="p-2 hover:bg-red-100 rounded-lg transition-colors"
+                        title="Delete Payment"
+                      >
+                        <Trash2 className="w-4 h-4 text-red-600" />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -226,18 +338,25 @@ const AdminPayments = () => {
                   <p><span className="text-gray-600">Booking ID:</span> #{selectedPayment.booking_id}</p>
                 </div>
               </div>
-              {selectedPayment.proof_image && (
-                <div>
-                  <h3 className="font-medium text-gray-900 mb-2">Payment Proof</h3>
-                  <div className="bg-gray-50 rounded-lg p-4">
+              <div>
+                <h3 className="font-medium text-gray-900 mb-2">Payment Proof</h3>
+                <div className="bg-gray-50 rounded-lg p-4 flex justify-center items-center min-h-[220px]">
+                  {proofLoading ? (
+                    <div className="text-sm text-gray-600">Memuat bukti transfer...</div>
+                  ) : proofError ? (
+                    <div className="text-sm text-red-600">{proofError}</div>
+                  ) : proofUrl ? (
                     <img
-                      src={selectedPayment.proof_image}
+                      src={proofUrl}
                       alt="Payment Proof"
-                      className="max-w-full h-auto rounded-lg"
+                      style={{ maxWidth: '100%', maxHeight: '80vh' }}
+                      className="rounded-lg"
                     />
-                  </div>
+                  ) : (
+                    <div className="text-sm text-gray-500">Tidak ada bukti transfer tersedia.</div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
             <div className="p-6 border-t border-gray-200 flex justify-end">
               <button

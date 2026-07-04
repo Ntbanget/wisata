@@ -3,12 +3,12 @@ const { query } = require('./database');
 class Vehicle {
   // Create new vehicle
   static async create(vehicleData) {
-    const { name, category, capacity, price_per_day, image_url, description, available = true } = vehicleData;
+    const { name, category, capacity, price_per_day, image_url, description, is_active = 1 } = vehicleData;
     const sql = `
-      INSERT INTO vehicles (name, category, capacity, price_per_day, image_url, description, available)
+      INSERT INTO vehicles (name, category, capacity, price_per_day, image_url, description, is_active)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
-    const [result] = await query(sql, [name, category, capacity, price_per_day, image_url, description, available]);
+    const [result] = await query(sql, [name, category, capacity, price_per_day, image_url, description, is_active]);
     return result.insertId;
   }
 
@@ -21,15 +21,17 @@ class Vehicle {
 
   // Get all vehicles
   static async getAll() {
-    const sql = 'SELECT * FROM vehicles WHERE available = true ORDER BY category, capacity';
-    const [vehicles] = await query(sql);
+    const sql = 'SELECT * FROM vehicles WHERE is_active = 1 ORDER BY category, capacity';
+    const vehicles = await query(sql);
+    console.log('Vehicle.getAll() result type:', Array.isArray(vehicles) ? 'array' : typeof vehicles);
+    console.log('Vehicle.getAll() result length:', Array.isArray(vehicles) ? vehicles.length : 'N/A');
     return vehicles;
   }
 
   // Get vehicles by capacity range
   static async getByCapacity(minCapacity, maxCapacity) {
-    const sql = 'SELECT * FROM vehicles WHERE capacity >= ? AND capacity <= ? AND available = true ORDER BY capacity';
-    const [vehicles] = await query(sql, [minCapacity, maxCapacity]);
+    const sql = 'SELECT * FROM vehicles WHERE capacity >= ? AND capacity <= ? AND is_active = 1 ORDER BY capacity';
+    const vehicles = await query(sql, [minCapacity, maxCapacity]);
     return vehicles;
   }
 
@@ -47,7 +49,7 @@ class Vehicle {
       category = 'bus';
     }
 
-    const sql = 'SELECT * FROM vehicles WHERE category = ? AND capacity >= ? AND available = true ORDER BY capacity ASC LIMIT 1';
+    const sql = 'SELECT * FROM vehicles WHERE category = ? AND capacity >= ? AND is_active = 1 ORDER BY capacity ASC LIMIT 1';
     const [vehicles] = await query(sql, [category, peopleCount]);
     return vehicles[0];
   }
@@ -81,9 +83,9 @@ class Vehicle {
       fields.push('description = ?');
       values.push(updateData.description);
     }
-    if (updateData.available !== undefined) {
-      fields.push('available = ?');
-      values.push(updateData.available);
+    if (updateData.is_active !== undefined) {
+      fields.push('is_active = ?');
+      values.push(updateData.is_active);
     }
 
     if (fields.length === 0) {

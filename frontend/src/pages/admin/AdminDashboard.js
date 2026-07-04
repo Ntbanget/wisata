@@ -9,7 +9,7 @@ import {
   Car,
   User
 } from 'lucide-react';
-import { apiService } from '../../services/api';
+import apiService from '../../services/api';
 import { formatCurrency } from '../../utils/helpers';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
@@ -42,7 +42,8 @@ const AdminDashboard = () => {
 
       // Load recent payments
       const paymentsResponse = await apiService.getAdminPayments();
-      setRecentPayments(paymentsResponse.data || []);
+      const recentPaymentsData = paymentsResponse?.data || paymentsResponse?.payments || paymentsResponse || [];
+      setRecentPayments(Array.isArray(recentPaymentsData) ? recentPaymentsData : []);
     } catch (err) {
       console.error('Error loading dashboard data:', err);
       setError('Failed to load dashboard data');

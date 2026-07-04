@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Search, Filter, Eye, Edit, Trash2 } from 'lucide-react';
-import { apiService } from '../../services/api';
+import apiService from '../../services/api';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
 
@@ -20,7 +20,7 @@ const AdminCustomers = () => {
       setIsLoading(true);
       setError(null);
       const response = await apiService.getAdminCustomers();
-      setCustomers(response.data?.users || []);
+      setCustomers(response.data || []);
     } catch (err) {
       console.error('Error loading customers:', err);
       setError('Failed to load customers');
