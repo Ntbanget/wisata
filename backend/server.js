@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const path = require('path');
 require('dotenv').config();
 
 const citiesRoutes = require('./src/routes/cities');
@@ -20,6 +21,8 @@ const app = express();
 // Trust proxy: limit to 1 proxy to avoid permissive true setting
 app.set('trust proxy', 1);
 const PORT = process.env.PORT || 5000;
+const backendRoot = path.resolve(__dirname);
+const uploadsRoot = path.join(backendRoot, 'uploads');
 const normalize = (u) => (typeof u === 'string' ? u.replace(/\/$/, '') : u);
 const allowedOrigins = Array.from(new Set([
   'http://localhost:3000',
@@ -59,7 +62,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Static file serving for uploads
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads', express.static(uploadsRoot));
 
 // API Routes
 app.use('/api/cities', citiesRoutes);

@@ -1,0 +1,8 @@
+{
+  "short_name": "Wisata",
+  "name": "Java Tourism Travel Planner",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#0f766e",
+  "background_color": "#ffffff"
+}

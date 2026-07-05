@@ -43,8 +43,13 @@ class Notification {
 
   static async getSupportedColumns() {
     try {
+      const mysqlColumns = await query('SHOW COLUMNS FROM notifications');
+      if (Array.isArray(mysqlColumns) && mysqlColumns.length > 0) {
+        return new Set(mysqlColumns.map((column) => column.Field || column.column_name).filter(Boolean));
+      }
+
       const columns = await query("SELECT column_name FROM information_schema.columns WHERE table_name = 'notifications'");
-      return new Set(columns.map((column) => column.column_name));
+      return new Set(columns.map((column) => column.column_name || column.Field).filter(Boolean));
     } catch (error) {
       return new Set(['user_id', 'booking_id', 'title', 'message', 'type', 'created_by', 'admin_id', 'admin_name']);
     }

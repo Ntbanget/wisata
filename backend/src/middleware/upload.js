@@ -1,10 +1,20 @@
+const fs = require('fs');
 const multer = require('multer');
 const path = require('path');
+
+const backendRoot = path.resolve(__dirname, '../..');
+const paymentUploadDir = path.join(backendRoot, 'uploads', 'payments');
+const vehicleUploadDir = path.join(backendRoot, 'public', 'assets', 'vehicles');
+
+const ensureDirectory = (dirPath) => {
+  fs.mkdirSync(dirPath, { recursive: true });
+};
 
 // Configure storage for payment proof uploads
 const paymentStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/payments/');
+    ensureDirectory(paymentUploadDir);
+    cb(null, paymentUploadDir);
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -15,7 +25,8 @@ const paymentStorage = multer.diskStorage({
 // Configure storage for vehicle image uploads
 const vehicleStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'public/assets/vehicles/');
+    ensureDirectory(vehicleUploadDir);
+    cb(null, vehicleUploadDir);
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -65,4 +76,4 @@ const uploadVehicle = multer({
   fileFilter: imageFilter
 });
 
-module.exports = { uploadPayment, uploadVehicle };
+module.exports = { uploadPayment, uploadVehicle, ensureDirectory };
