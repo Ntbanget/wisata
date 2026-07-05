@@ -43,8 +43,8 @@ class Notification {
 
   static async getSupportedColumns() {
     try {
-      const columns = await query('SHOW COLUMNS FROM notifications');
-      return new Set(columns.map((column) => column.Field));
+      const columns = await query("SELECT column_name FROM information_schema.columns WHERE table_name = 'notifications'");
+      return new Set(columns.map((column) => column.column_name));
     } catch (error) {
       return new Set(['user_id', 'booking_id', 'title', 'message', 'type', 'created_by', 'admin_id', 'admin_name']);
     }

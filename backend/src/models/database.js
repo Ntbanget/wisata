@@ -1,97 +1,123 @@
-const mysql = require('mysql2/promise');
+const { Pool } = require('pg');
 require('dotenv').config();
 
-// Debug environment variables
 console.log('🔍 Database Configuration:');
-console.log('DB_HOST:', process.env.DB_HOST);
-console.log('DB_USER:', process.env.DB_USER);
-console.log('DB_PASSWORD:', process.env.DB_PASSWORD ? '***SET***' : '***EMPTY***');
-console.log('DB_NAME:', process.env.DB_NAME);
+console.log('DATABASE_URL:', process.env.DATABASE_URL ? '***SET***' : '***EMPTY***');
 
-// Database connection configuration
-const dbConfig = {
-  host: process.env.DB_HOST || '127.0.0.1',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'wisata_db',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-  decimalNumbers: true
-};
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
+});
 
-// Create connection pool
-const pool = mysql.createPool(dbConfig);
+function convertQuestionMarksToPostgres(sql, params = []) {
+  if (!Array.isArray(params) || params.length === 0) {
+    return { sql, params };
+  }
 
-// Test database connection
+  let index = 0;
+  const convertedSql = sql.replace(/\?/g, () => {
+    index += 1;
+    return `$${index}`;
+  });
+
+  return { sql: convertedSql, params };
+}
+
+function prepareInsertSql(sql) {
+  const trimmed = sql.trim();
+  if (!/^INSERT\s+/i.test(trimmed) || /RETURNING\b/i.test(trimmed)) {
+    return sql;
+  }
+
+  return `${trimmed} RETURNING id`;
+}
+
+function buildQueryResponse(result, rows) {
+  const command = result.command || 'SELECT';
+  const fields = result.fields || [];
+  const rowCount = result.rowCount || 0;
+  let insertId = null;
+
+  if (command === 'INSERT' && Array.isArray(rows) && rows.length > 0) {
+    insertId = rows[0].id || rows[0].insertId || null;
+  }
+
+  if (command === 'INSERT' || command === 'UPDATE' || command === 'DELETE') {
+    return {
+      insertId,
+      rowCount,
+      affectedRows: rowCount,
+      command,
+      fields,
+      rows
+    };
+  }
+
+  const response = rows;
+  response.insertId = insertId;
+  response.rowCount = rowCount;
+  response.affectedRows = rowCount;
+  response.command = command;
+  response.fields = fields;
+  response.rows = rows;
+  return response;
+}
+
+async function executeQuery(clientLike, sql, params = [], mode = 'query') {
+  try {
+    const { sql: convertedSql, params: convertedParams } = convertQuestionMarksToPostgres(sql, params);
+    const preparedSql = prepareInsertSql(convertedSql);
+    const result = await clientLike.query(preparedSql, convertedParams);
+    const rows = Array.isArray(result.rows) ? result.rows : [];
+    const response = buildQueryResponse(result, rows);
+
+    if (mode === 'execute') {
+      if (result.command === 'SELECT') {
+        return [rows, result.fields || []];
+      }
+      return [response, result.fields || []];
+    }
+
+    return response;
+  } catch (error) {
+    console.error('Database query error:', error);
+    throw error;
+  }
+}
+
+async function query(sql, params = []) {
+  return executeQuery(pool, sql, params);
+}
+
+async function transaction(callback) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    client.execute = (sql, params = []) => executeQuery(client, sql, params, 'execute');
+    const result = await callback(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+pool.execute = (sql, params = []) => executeQuery(pool, sql, params, 'execute');
+
 async function testConnection() {
   try {
-    const connection = await pool.getConnection();
-    await connection.ping();
-    connection.release();
+    const result = await pool.query('SELECT NOW()');
     console.log('✅ Database connected successfully');
-    return true;
+    return result.rows[0];
   } catch (error) {
     console.error('❌ Database connection failed:', error.message);
     return false;
   }
 }
 
-// Query helper function
-async function query(sql, params = []) {
-  try {
-    const [rows] = await pool.execute(sql, params);
-    return rows;
-  } catch (error) {
-    console.error('Database query error:', error);
-
-    // Check for column not found error
-    if (error.code === 'ER_BAD_FIELD_ERROR') {
-      const columnMatch = error.message.match(/Unknown column '(\w+)'/);
-      if (columnMatch) {
-        const columnName = columnMatch[1];
-        let suggestedColumn = columnName;
-
-        // Map incorrect column names to correct ones based on table context
-        if (columnName === 'available') {
-          // Check if SQL mentions tour_guides or vehicles to determine correct column
-          if (sql.toLowerCase().includes('tour_guides')) {
-            suggestedColumn = 'is_available';
-          } else if (sql.toLowerCase().includes('vehicles')) {
-            suggestedColumn = 'is_active';
-          } else {
-            suggestedColumn = 'is_active or is_available (check table context)';
-          }
-        }
-
-        const enhancedError = new Error(`Database schema mismatch terdeteksi. Periksa apakah tabel menggunakan is_active atau is_available. Column '${columnName}' does not exist. Expected '${suggestedColumn}'.`);
-        enhancedError.code = 'SCHEMA_MISMATCH';
-        enhancedError.originalError = error;
-        throw enhancedError;
-      }
-    }
-
-    throw error;
-  }
-}
-
-// Transaction helper function
-async function transaction(callback) {
-  const connection = await pool.getConnection();
-  try {
-    await connection.beginTransaction();
-    const result = await callback(connection);
-    await connection.commit();
-    return result;
-  } catch (error) {
-    await connection.rollback();
-    throw error;
-  } finally {
-    connection.release();
-  }
-}
-
-// Close connection pool
 async function close() {
   await pool.end();
   console.log('Database connection pool closed');

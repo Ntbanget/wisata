@@ -5,7 +5,7 @@ class TourGuideController {
   static async getAllTourGuides(req, res) {
     try {
       console.log('=== GET /api/tour-guides ===');
-      console.log('SQL: SELECT * FROM tour_guides WHERE is_available = 1 ORDER BY rating DESC');
+      console.log('SQL: SELECT * FROM tour_guides WHERE is_available = true ORDER BY rating DESC');
       const guides = await TourGuide.getAll();
       console.log('RESULT: Found', guides.length, 'tour guides');
       res.json({

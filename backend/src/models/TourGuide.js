@@ -3,7 +3,7 @@ const { query } = require('./database');
 class TourGuide {
   // Create new tour guide
   static async create(guideData) {
-    const { name, specialization, experience_years, languages, price_per_day, image_url, bio, rating = 0, is_available = 1 } = guideData;
+    const { name, specialization, experience_years, languages, price_per_day, image_url, bio, rating = 0, is_available = true } = guideData;
     const sql = `
       INSERT INTO tour_guides (name, specialization, experience_years, languages, price_per_day, image_url, bio, rating, is_available)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -21,21 +21,21 @@ class TourGuide {
 
   // Get all tour guides
   static async getAll() {
-    const sql = 'SELECT * FROM tour_guides WHERE is_available = 1 ORDER BY rating DESC';
+    const sql = 'SELECT * FROM tour_guides WHERE is_available = true ORDER BY rating DESC';
     const guides = await query(sql);
     return guides;
   }
 
   // Get tour guides by specialization
   static async getBySpecialization(specialization) {
-    const sql = 'SELECT * FROM tour_guides WHERE specialization = ? AND is_available = 1 ORDER BY rating DESC';
+    const sql = 'SELECT * FROM tour_guides WHERE specialization = ? AND is_available = true ORDER BY rating DESC';
     const guides = await query(sql, [specialization]);
     return guides;
   }
 
   // Get top-rated tour guides
   static async getTopRated(limit = 5) {
-    const sql = 'SELECT * FROM tour_guides WHERE is_available = 1 ORDER BY rating DESC LIMIT ?';
+    const sql = 'SELECT * FROM tour_guides WHERE is_available = true ORDER BY rating DESC LIMIT ?';
     const guides = await query(sql, [limit]);
     return guides;
   }

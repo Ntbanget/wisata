@@ -79,13 +79,15 @@ class AuthController {
       );
 
       const user = await User.getById(userId);
-      const { password_hash: _, ...userWithoutPassword } = user;
+      const sanitizedUser = { ...user };
+      delete sanitizedUser.password_hash;
+      delete sanitizedUser.password;
 
       res.status(201).json({
         success: true,
         message: 'Registration successful',
         token,
-        user: userWithoutPassword
+        user: sanitizedUser
       });
     } catch (error) {
       console.error('Registration error:', error);
@@ -134,8 +136,10 @@ class AuthController {
         });
       }
 
-      // Verify password
-      const isValidPassword = await bcrypt.compare(password, user.password_hash);
+      // Verify password from either password_hash or password column
+      const passwordField = user.password_hash !== undefined ? 'password_hash' : 'password';
+      const storedPassword = user[passwordField];
+      const isValidPassword = await bcrypt.compare(password, storedPassword);
       if (!isValidPassword) {
         return res.status(401).json({
           error: 'Invalid credentials',
@@ -158,13 +162,15 @@ class AuthController {
         { expiresIn: '7d' }
       );
 
-      const { password_hash: _, ...userWithoutPassword } = user;
+      const sanitizedUser = { ...user };
+      delete sanitizedUser.password_hash;
+      delete sanitizedUser.password;
 
       res.json({
         success: true,
         message: 'Login successful',
         token,
-        user: userWithoutPassword
+        user: sanitizedUser
       });
     } catch (error) {
       console.error('Login error:', error);
@@ -221,8 +227,10 @@ class AuthController {
         });
       }
 
-      // Verify password
-      const isValidPassword = await bcrypt.compare(password, user.password_hash);
+      // Verify password from either password_hash or password column
+      const passwordField = user.password_hash !== undefined ? 'password_hash' : 'password';
+      const storedPassword = user[passwordField];
+      const isValidPassword = await bcrypt.compare(password, storedPassword);
       if (!isValidPassword) {
         return res.status(401).json({
           error: 'Invalid credentials',
@@ -237,13 +245,15 @@ class AuthController {
         { expiresIn: '7d' }
       );
 
-      const { password_hash: _, ...userWithoutPassword } = user;
+      const sanitizedUser = { ...user };
+      delete sanitizedUser.password_hash;
+      delete sanitizedUser.password;
 
       res.json({
         success: true,
         message: 'Admin login successful',
         token,
-        user: userWithoutPassword
+        user: sanitizedUser
       });
     } catch (error) {
       console.error('Admin login error:', error);
@@ -264,11 +274,13 @@ class AuthController {
         });
       }
 
-      const { password_hash: _, ...userWithoutPassword } = user;
+      const sanitizedUser = { ...user };
+      delete sanitizedUser.password_hash;
+      delete sanitizedUser.password;
 
       res.json({
         success: true,
-        user: userWithoutPassword
+        user: sanitizedUser
       });
     } catch (error) {
       console.error('Get profile error:', error);
@@ -308,12 +320,14 @@ class AuthController {
       await User.update(userId, updateData);
 
       const user = await User.getById(userId);
-      const { password_hash: _, ...userWithoutPassword } = user;
+      const sanitizedUser = { ...user };
+      delete sanitizedUser.password_hash;
+      delete sanitizedUser.password;
 
       res.json({
         success: true,
         message: 'Profile updated successfully',
-        user: userWithoutPassword
+        user: sanitizedUser
       });
     } catch (error) {
       console.error('Update profile error:', error);
@@ -352,8 +366,10 @@ class AuthController {
         });
       }
 
-      // Verify current password
-      const isValidPassword = await bcrypt.compare(current_password, user.password_hash);
+      // Verify current password from either password_hash or password column
+      const passwordField = user.password_hash !== undefined ? 'password_hash' : 'password';
+      const storedPassword = user[passwordField];
+      const isValidPassword = await bcrypt.compare(current_password, storedPassword);
       if (!isValidPassword) {
         return res.status(401).json({
           error: 'Invalid password',
@@ -506,12 +522,14 @@ class AuthController {
       await User.update(parseInt(id), { role });
 
       const user = await User.getById(parseInt(id));
-      const { password_hash: _, ...userWithoutPassword } = user;
+      const sanitizedUser = { ...user };
+      delete sanitizedUser.password_hash;
+      delete sanitizedUser.password;
 
       res.json({
         success: true,
         message: 'User role updated successfully',
-        user: userWithoutPassword
+        user: sanitizedUser
       });
     } catch (error) {
       console.error('Update user role error:', error);

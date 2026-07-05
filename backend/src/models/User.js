@@ -1,11 +1,21 @@
 const { pool, query } = require('./database');
 
 class User {
+  static async getPasswordColumnName() {
+    try {
+      const rows = await query("SELECT column_name FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'password_hash'");
+      return rows.length > 0 ? 'password_hash' : 'password';
+    } catch (error) {
+      return 'password_hash';
+    }
+  }
+
   // Create new user
   static async create(userData) {
     const { name, email, password_hash, phone, role = 'user' } = userData;
+    const passwordColumn = await this.getPasswordColumnName();
     const sql = `
-      INSERT INTO users (name, email, password_hash, phone, role)
+      INSERT INTO users (name, email, ${passwordColumn}, phone, role)
       VALUES (?, ?, ?, ?, ?)
     `;
     try {
@@ -84,7 +94,8 @@ class User {
       values.push(updateData.email);
     }
     if (updateData.password_hash !== undefined) {
-      fields.push('password_hash = ?');
+      const passwordColumn = await this.getPasswordColumnName();
+      fields.push(`${passwordColumn} = ?`);
       values.push(updateData.password_hash);
     }
     if (updateData.phone !== undefined) {

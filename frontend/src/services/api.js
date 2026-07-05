@@ -9,6 +9,8 @@ const getApiBaseUrl = () => {
     return 'http://localhost:5000/api';
   }
 
+  // Fallback production - should never be used if REACT_APP_API_URL
+  // is correctly set in Vercel environment variables.
   return 'https://wisata-production-9a51.up.railway.app/api';
 };
 

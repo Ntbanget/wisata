@@ -17,13 +17,17 @@ const adminRoutes = require('./src/routes/admin');
 const notificationsRoutes = require('./src/routes/notifications');
 
 const app = express();
+// Trust proxy: limit to 1 proxy to avoid permissive true setting
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 5000;
-const allowedOrigins = [
+const normalize = (u) => (typeof u === 'string' ? u.replace(/\/$/, '') : u);
+const allowedOrigins = Array.from(new Set([
   'http://localhost:3000',
   'http://127.0.0.1:3000',
+  'http://localhost:5004',
   process.env.FRONTEND_URL,
   'https://wisata-amber.vercel.app'
-].filter(Boolean);
+].filter(Boolean).map(normalize)));
 
 // Security middleware
 app.use(helmet());
@@ -41,7 +45,7 @@ app.use('/api/', limiter);
 // CORS configuration
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin || allowedOrigins.includes(normalize(origin))) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));

@@ -342,6 +342,20 @@ class AdminController {
       };
 
       const createdPackage = await Package.create(packageData);
+
+      try {
+        await logActivity(
+          req.user?.id || null,
+          req.user?.name || 'Admin',
+          'CREATE_PACKAGE',
+          'PACKAGE',
+          createdPackage?.id || null,
+          `Created package "${name}" for city ${city_id}`
+        );
+      } catch (logError) {
+        console.error('Activity log error:', logError);
+      }
+
       res.json({
         success: true,
         data: createdPackage,

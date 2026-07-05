@@ -5,7 +5,7 @@ class VehicleController {
   static async getAllVehicles(req, res) {
     try {
       console.log('=== GET /api/vehicles ===');
-      console.log('SQL: SELECT * FROM vehicles WHERE is_active = 1 ORDER BY category, capacity');
+      console.log('SQL: SELECT * FROM vehicles WHERE is_active = true ORDER BY category, capacity');
       const vehicles = await Vehicle.getAll();
       console.log('RESULT: Found', vehicles.length, 'vehicles');
       res.json({
@@ -118,7 +118,7 @@ class VehicleController {
         price_per_day,
         image_url: finalImageUrl,
         description,
-        is_active: is_active !== undefined ? is_active : 1
+        is_active: is_active !== undefined ? is_active : true
       });
 
       const vehicle = await Vehicle.getById(vehicleId);

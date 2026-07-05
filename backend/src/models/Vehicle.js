@@ -3,7 +3,7 @@ const { query } = require('./database');
 class Vehicle {
   // Create new vehicle
   static async create(vehicleData) {
-    const { name, category, capacity, price_per_day, image_url, description, is_active = 1 } = vehicleData;
+    const { name, category, capacity, price_per_day, image_url, description, is_active = true } = vehicleData;
     const sql = `
       INSERT INTO vehicles (name, category, capacity, price_per_day, image_url, description, is_active)
       VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -21,7 +21,7 @@ class Vehicle {
 
   // Get all vehicles
   static async getAll() {
-    const sql = 'SELECT * FROM vehicles WHERE is_active = 1 ORDER BY category, capacity';
+    const sql = 'SELECT * FROM vehicles WHERE is_active = true ORDER BY category, capacity';
     const vehicles = await query(sql);
     console.log('Vehicle.getAll() result type:', Array.isArray(vehicles) ? 'array' : typeof vehicles);
     console.log('Vehicle.getAll() result length:', Array.isArray(vehicles) ? vehicles.length : 'N/A');
@@ -30,7 +30,7 @@ class Vehicle {
 
   // Get vehicles by capacity range
   static async getByCapacity(minCapacity, maxCapacity) {
-    const sql = 'SELECT * FROM vehicles WHERE capacity >= ? AND capacity <= ? AND is_active = 1 ORDER BY capacity';
+    const sql = 'SELECT * FROM vehicles WHERE capacity >= ? AND capacity <= ? AND is_active = true ORDER BY capacity';
     const vehicles = await query(sql, [minCapacity, maxCapacity]);
     return vehicles;
   }
@@ -49,7 +49,7 @@ class Vehicle {
       category = 'bus';
     }
 
-    const sql = 'SELECT * FROM vehicles WHERE category = ? AND capacity >= ? AND is_active = 1 ORDER BY capacity ASC LIMIT 1';
+    const sql = 'SELECT * FROM vehicles WHERE category = ? AND capacity >= ? AND is_active = true ORDER BY capacity ASC LIMIT 1';
     const [vehicles] = await query(sql, [category, peopleCount]);
     return vehicles[0];
   }
