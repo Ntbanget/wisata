@@ -38,6 +38,20 @@ function buildQueryResponse(result, rows) {
   const rowCount = result.rowCount || 0;
   let insertId = null;
 
+  if (command === 'SELECT' && Array.isArray(rows)) {
+    const numericKeys = ['price_per_night', 'ticket_price', 'price_per_day', 'total_price', 'budget', 'amount', 'rating', 'lat', 'lng', 'total_estimated_cost'];
+    rows.forEach((row) => {
+      numericKeys.forEach((key) => {
+        if (Object.prototype.hasOwnProperty.call(row, key) && typeof row[key] === 'string') {
+          const parsed = Number(row[key]);
+          if (!Number.isNaN(parsed)) {
+            row[key] = parsed;
+          }
+        }
+      });
+    });
+  }
+
   if (command === 'INSERT' && Array.isArray(rows) && rows.length > 0) {
     insertId = rows[0].id || rows[0].insertId || null;
   }

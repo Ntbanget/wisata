@@ -7,5 +7,4 @@ vendor/
 build/
 coverage/
 backend/uploads/
-frontend/public/images/
 img/

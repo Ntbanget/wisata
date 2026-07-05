@@ -67,27 +67,32 @@ const CheckoutPage = () => {
   // Calculate hotel price based on room capacity
   const calculateHotelPrice = () => {
     if (!packageData || !packageData.hotel) return 0;
-    const roomCapacity = packageData.hotel.room_capacity || 2;
+    const roomCapacity = parseInt(packageData.hotel.room_capacity, 10) || 2;
     const peopleCount = parseInt(formData.people_count, 10) || 1;
     const roomsNeeded = Math.ceil(peopleCount / roomCapacity);
     const nights = parseInt(formData.nights, 10) || 1;
-    return roomsNeeded * packageData.hotel.price_per_night * nights;
+    const pricePerNight = Number(packageData.hotel.price_per_night) || 0;
+    return roomsNeeded * pricePerNight * nights;
   };
 
   // Calculate tourist places price
   const calculateTouristPlacesPrice = () => {
     if (!packageData || !packageData.tourist_places) return 0;
-    return packageData.tourist_places.reduce((sum, place) => sum + (place.ticket_price || 0), 0);
+    return packageData.tourist_places.reduce(
+      (sum, place) => sum + Number(place.ticket_price || 0),
+      0
+    );
   };
 
   // Calculate vehicle price
   const calculateVehiclePrice = () => {
     if (vehicleMode === 'custom' && customVehicleSelection) {
-      return customVehicleSelection.vehicleCost;
+      return Number(customVehicleSelection.vehicleCost) || 0;
     }
     if (selectedVehicle) {
       const nights = parseInt(formData.nights, 10) || 1;
-      return selectedVehicle.price_per_day * vehicleQuantity * nights;
+      const pricePerDay = Number(selectedVehicle.price_per_day) || 0;
+      return pricePerDay * vehicleQuantity * nights;
     }
     return 0;
   };
@@ -96,7 +101,8 @@ const CheckoutPage = () => {
   const calculateTourGuidePrice = () => {
     if (selectedGuide) {
       const nights = parseInt(formData.nights, 10) || 1;
-      return selectedGuide.price_per_day * nights;
+      const pricePerDay = Number(selectedGuide.price_per_day) || 0;
+      return pricePerDay * nights;
     }
     return 0;
   };

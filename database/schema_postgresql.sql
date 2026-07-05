@@ -164,7 +164,7 @@ CREATE TABLE bookings (
   status VARCHAR(30) DEFAULT 'PENDING_PAYMENT' CHECK (status IN ('PENDING_PAYMENT','CONFIRMED','CANCELLED')),
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  payment_method VARCHAR(30) DEFAULT 'transfer' CHECK (payment_method IN ('transfer','cash','credit_card','e_wallet')),
+  payment_method VARCHAR(30) DEFAULT 'transfer' CHECK (payment_method IN ('transfer','cash','credit_card','e_wallet','qris')),
   payment_status VARCHAR(30) DEFAULT 'pending' CHECK (payment_status IN ('pending','PENDING','paid','failed','refunded')),
   payment_proof VARCHAR(500) DEFAULT NULL,
   admin_notes TEXT DEFAULT NULL,
