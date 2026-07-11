@@ -125,7 +125,7 @@ class HotelController {
       const { city_id, name, category, description, price_per_night, image_url, address, rating } = req.body;
 
       // Validation
-      if (!city_id || !validator.isInt(city_id, { min: 1 })) {
+      if (!city_id || !validator.isInt(String(city_id), { min: 1 })) {
         return res.status(400).json({
           success: false,
           error: 'Invalid or missing city ID'
@@ -146,7 +146,7 @@ class HotelController {
         });
       }
 
-      if (!price_per_night || !validator.isFloat(price_per_night, { min: 0 })) {
+      if (price_per_night === undefined || price_per_night === null || !validator.isFloat(String(price_per_night), { min: 0 })) {
         return res.status(400).json({
           success: false,
           error: 'Invalid price per night'
@@ -202,7 +202,7 @@ class HotelController {
       }
 
       // Validation
-      if (city_id !== undefined && !validator.isInt(city_id, { min: 1 })) {
+      if (city_id !== undefined && !validator.isInt(String(city_id), { min: 1 })) {
         return res.status(400).json({
           success: false,
           error: 'Invalid city ID'
@@ -223,7 +223,7 @@ class HotelController {
         });
       }
 
-      if (price_per_night !== undefined && !validator.isFloat(price_per_night, { min: 0 })) {
+      if (price_per_night !== undefined && price_per_night !== null && !validator.isFloat(String(price_per_night), { min: 0 })) {
         return res.status(400).json({
           success: false,
           error: 'Invalid price per night'

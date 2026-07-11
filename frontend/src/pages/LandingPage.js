@@ -6,13 +6,14 @@ import { formatCurrency, getRatingStars } from '../utils/helpers';
 import { selectFeaturedCities } from '../utils/popularCities';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
+import { getPackagesFromPackageApiResponse } from '../utils/packageResponse';
 
 const LandingPage = () => {
   const navigate = useNavigate();
   const [cities, setCities] = useState([]);
   const [selectedCity, setSelectedCity] = useState('');
   const [budget, setBudget] = useState('');
-  const [nights, setNights] = useState(1);
+  const [nights, setNights] = useState(2);
   const [peopleCount, setPeopleCount] = useState('');
   const [vehicleMode, setVehicleMode] = useState('automatic'); // 'automatic' or 'custom'
   const [isLoading, setIsLoading] = useState(false);
@@ -100,6 +101,7 @@ const LandingPage = () => {
     }
 
     const safeNights = Math.max(1, Math.min(parseInt(nights, 10) || 1, 14));
+    const safePeopleCount = Math.max(1, parseInt(peopleCount, 10) || 1);
 
     setIsLoading(true);
     setError(null);
@@ -114,26 +116,42 @@ const LandingPage = () => {
           nights: safeNights
         });
 
-        if (response.data.packages.length === 0) {
-          setError('No packages found for your criteria. Try increasing your budget or selecting a different city.');
-        } else {
-          sessionStorage.setItem('searchResults', JSON.stringify(response.data));
-          sessionStorage.setItem('searchCriteria', JSON.stringify({
-            city_id: selectedCity,
-            budget: parseFloat(budget),
-            nights: safeNights,
-            vehicleMode: 'automatic'
-          }));
-          navigate('/packages');
-        }
+        const payload = response?.data && typeof response.data === 'object' && !Array.isArray(response.data)
+          ? response.data
+          : response || {};
+        const packages = getPackagesFromPackageApiResponse(response);
+
+      if (packages.length === 0) {
+        setError('No packages found for your criteria. Try increasing your budget or selecting a different city.');
+      } else {
+        const snapshot = {
+          ...payload,
+          packages,
+          saved_at: Date.now()
+        };
+
+        sessionStorage.setItem('searchResults', JSON.stringify(snapshot));
+        sessionStorage.setItem('searchCriteria', JSON.stringify({
+          city_id: selectedCity,
+          budget: parseFloat(budget),
+          nights: safeNights,
+          people_count: safePeopleCount,
+          peopleCount: safePeopleCount,
+          vehicleMode: 'automatic',
+          saved_at: Date.now()
+        }));
+        navigate('/packages');
+      }
       } else {
         // Custom vehicle mode - skip package generation and go directly to checkout
         sessionStorage.setItem('searchCriteria', JSON.stringify({
           city_id: selectedCity,
           budget: parseFloat(budget),
           nights: safeNights,
+          people_count: safePeopleCount,
+          peopleCount: safePeopleCount,
           vehicleMode: 'custom',
-          peopleCount: parseInt(peopleCount)
+          saved_at: Date.now()
         }));
         navigate('/checkout');
       }

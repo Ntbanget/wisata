@@ -1,3 +1,6 @@
+const Package = require('../models/Package');
+const Hotel = require('../models/Hotel');
+const TouristPlace = require('../models/TouristPlace');
 const PackageGenerator = require('../utils/packageGenerator');
 const validator = require('validator');
 
@@ -55,16 +58,77 @@ class PackageController {
         ? parseInt(nights)
         : 1;
 
-      // Generate packages
-      const packages = await PackageGenerator.generatePackages(
-        cityIdNum,
-        budgetNum,
-        {
-          packagesCount,
-          maxPlaces,
-          nights: nightsNum
+      const publishedAdminPackages = await Package.getPublishedByCity(cityIdNum);
+      const adminPackages = [];
+
+      for (const pkg of publishedAdminPackages) {
+        if (pkg.budget !== null && pkg.budget !== undefined && Number(pkg.budget) > budgetNum) {
+          continue;
         }
-      );
+
+        const savedNights = Math.max(1, parseInt(pkg.nights || nightsNum, 10) || 1);
+        const hotel = pkg.hotel_id ? await Hotel.getById(pkg.hotel_id) : null;
+        if (!hotel) {
+          continue;
+        }
+
+        const touristPlaces = Array.isArray(pkg.tourist_place_ids) && pkg.tourist_place_ids.length > 0
+          ? await TouristPlace.getByIds(pkg.tourist_place_ids)
+          : [];
+
+        const peopleCount = Math.max(1, parseInt(pkg.people_count || 1, 10) || 1);
+        const hotelTotal = Number(hotel.price_per_night || 0) * savedNights;
+        const placesTotal = touristPlaces.reduce((sum, place) => sum + Number(place.ticket_price || 0), 0);
+        const totalPrice = hotelTotal + placesTotal;
+
+        adminPackages.push({
+          id: pkg.id,
+          name: pkg.name,
+          hotel,
+          hotel_tier: hotel.category,
+          tourist_places: touristPlaces,
+          nights: savedNights,
+          people_count: peopleCount,
+          hotel_total: hotelTotal,
+          places_total: placesTotal,
+          total_price: totalPrice,
+          budget: Number(pkg.budget || budgetNum),
+          remaining_budget: Number(pkg.budget || budgetNum) - totalPrice,
+          score: 10,
+          itinerary: pkg.generated_itinerary || null,
+          source: 'admin',
+          status: pkg.status
+        });
+      }
+
+      const generatedPackages = adminPackages.length >= packagesCount
+        ? []
+        : await PackageGenerator.generatePackages(
+            cityIdNum,
+            budgetNum,
+            {
+              packagesCount: Math.max(1, packagesCount - adminPackages.length),
+              maxPlaces,
+              nights: nightsNum
+            }
+          );
+
+      const normalizedGeneratedPackages = (generatedPackages || []).map((pkg) => ({
+        ...pkg,
+        source: 'generated',
+      }));
+
+      const seenKeys = new Set();
+      const packages = [...adminPackages, ...normalizedGeneratedPackages]
+        .filter((pkg) => {
+          const key = pkg.hotel?.id ? `hotel:${pkg.hotel.id}` : `name:${pkg.name || pkg.id}`;
+          if (seenKeys.has(key)) {
+            return false;
+          }
+          seenKeys.add(key);
+          return true;
+        })
+        .slice(0, packagesCount);
 
       // Get budget breakdown
       const budgetBreakdown = PackageGenerator.getBudgetBreakdown(budgetNum);

@@ -147,12 +147,12 @@ class BookingController {
             return false;
           }
 
-          if (!place.id) {
+          if (place.id === null || place.id === undefined) {
             console.log(`  ❌ place[${index}].id is null/undefined`);
             return false;
           }
 
-          if (!place.ticket_price) {
+          if (place.ticket_price === null || place.ticket_price === undefined) {
             console.log(`  ❌ place[${index}].ticket_price is null/undefined`);
             return false;
           }

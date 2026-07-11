@@ -9,7 +9,7 @@ const CustomerHomePage = () => {
     city_id: '',
     budget: '',
     people: 1,
-    nights: 1
+    nights: 2
   });
   const [cities, setCities] = useState([]);
   const [error, setError] = useState(null);
@@ -87,7 +87,7 @@ const CustomerHomePage = () => {
       const response = await apiService.generatePackages(params);
       console.log('=== GENERATE PACKAGES RESPONSE ===', response);
 
-      const packages = response?.packages || response?.data?.packages || [];
+      const packages = response?.packages || response?.data?.packages || response?.data || [];
       console.log('=== PACKAGES EXTRACTED ===', packages);
 
       if (packages.length === 0) {

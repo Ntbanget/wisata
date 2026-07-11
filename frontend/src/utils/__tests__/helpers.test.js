@@ -20,6 +20,7 @@ import {
   getOpeningHours,
   isValidEmail,
   isValidPhone,
+  getAutoImageUrl,
 } from '../helpers';
 
 describe('formatCurrency', () => {
@@ -82,6 +83,13 @@ describe('getVisitMinutes', () => {
 describe('getOpeningHours', () => {
   it('returns {open, close} for known categories', () => {
     expect(getOpeningHours('Religious')).toEqual({ open: '04:00', close: '21:00' });
+  });
+});
+
+describe('getAutoImageUrl', () => {
+  it('uses explicit image URLs from alternate property names', () => {
+    expect(getAutoImageUrl({ imageUrl: 'https://example.com/hotel.jpg' }, 'hotel')).toBe('https://example.com/hotel.jpg');
+    expect(getAutoImageUrl({ photo_url: 'https://example.com/photo.jpg' }, 'hotel')).toBe('https://example.com/photo.jpg');
   });
 });
 

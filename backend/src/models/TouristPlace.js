@@ -4,11 +4,13 @@ class TouristPlace {
   // Get tourist places by city ID
   static async getByCity(cityId) {
     const sql = `
-      SELECT id, name, city_id, ticket_price, category, 
-             lat, lng, image_url, description, created_at
-      FROM tourist_places 
-      WHERE city_id = ?
-      ORDER BY category, ticket_price ASC
+      SELECT tp.id, tp.name, tp.city_id, tp.ticket_price, tp.category,
+             tp.lat, tp.lng, tp.image_url, tp.description, tp.created_at,
+             c.name AS city_name
+      FROM tourist_places tp
+      LEFT JOIN cities c ON c.id = tp.city_id
+      WHERE tp.city_id = ?
+      ORDER BY tp.category, tp.ticket_price ASC
     `;
     return await query(sql, [cityId]);
   }
@@ -16,11 +18,13 @@ class TouristPlace {
   // Get tourist places by city and budget
   static async getByCityAndBudget(cityId, budget) {
     const sql = `
-      SELECT id, name, city_id, ticket_price, category, 
-             lat, lng, image_url, description, created_at
-      FROM tourist_places 
-      WHERE city_id = ? AND ticket_price <= ?
-      ORDER BY category, ticket_price ASC
+      SELECT tp.id, tp.name, tp.city_id, tp.ticket_price, tp.category,
+             tp.lat, tp.lng, tp.image_url, tp.description, tp.created_at,
+             c.name AS city_name
+      FROM tourist_places tp
+      LEFT JOIN cities c ON c.id = tp.city_id
+      WHERE tp.city_id = ? AND tp.ticket_price <= ?
+      ORDER BY tp.category, tp.ticket_price ASC
     `;
     return await query(sql, [cityId, budget]);
   }
@@ -28,11 +32,13 @@ class TouristPlace {
   // Get tourist places by category
   static async getByCategory(cityId, category) {
     const sql = `
-      SELECT id, name, city_id, ticket_price, category, 
-             lat, lng, image_url, description, created_at
-      FROM tourist_places 
-      WHERE city_id = ? AND category = ?
-      ORDER BY ticket_price ASC
+      SELECT tp.id, tp.name, tp.city_id, tp.ticket_price, tp.category,
+             tp.lat, tp.lng, tp.image_url, tp.description, tp.created_at,
+             c.name AS city_name
+      FROM tourist_places tp
+      LEFT JOIN cities c ON c.id = tp.city_id
+      WHERE tp.city_id = ? AND tp.category = ?
+      ORDER BY tp.ticket_price ASC
     `;
     return await query(sql, [cityId, category]);
   }
@@ -40,19 +46,21 @@ class TouristPlace {
   // Get best combination within budget
   static async getBestCombination(cityId, budget, maxPlaces = 4) {
     const sql = `
-      SELECT id, name, city_id, ticket_price, category, 
-             lat, lng, image_url, description, created_at
-      FROM tourist_places 
-      WHERE city_id = ? AND ticket_price <= ?
+      SELECT tp.id, tp.name, tp.city_id, tp.ticket_price, tp.category,
+             tp.lat, tp.lng, tp.image_url, tp.description, tp.created_at,
+             c.name AS city_name
+      FROM tourist_places tp
+      LEFT JOIN cities c ON c.id = tp.city_id
+      WHERE tp.city_id = ? AND tp.ticket_price <= ?
       ORDER BY 
         CASE 
-          WHEN category = 'Historical' THEN 1
-          WHEN category = 'Nature' THEN 2
-          WHEN category = 'Cultural' THEN 3
-          WHEN category = 'Beach' THEN 4
+          WHEN tp.category = 'Historical' THEN 1
+          WHEN tp.category = 'Nature' THEN 2
+          WHEN tp.category = 'Cultural' THEN 3
+          WHEN tp.category = 'Beach' THEN 4
           ELSE 5
         END,
-        ticket_price ASC
+        tp.ticket_price ASC
       LIMIT ?
     `;
     return await query(sql, [cityId, budget, maxPlaces]);
@@ -61,10 +69,12 @@ class TouristPlace {
   // Get tourist place by ID
   static async getById(id) {
     const sql = `
-      SELECT id, name, city_id, ticket_price, category, 
-             lat, lng, image_url, description, created_at
-      FROM tourist_places 
-      WHERE id = ?
+      SELECT tp.id, tp.name, tp.city_id, tp.ticket_price, tp.category,
+             tp.lat, tp.lng, tp.image_url, tp.description, tp.created_at,
+             c.name AS city_name
+      FROM tourist_places tp
+      LEFT JOIN cities c ON c.id = tp.city_id
+      WHERE tp.id = ?
     `;
     const places = await query(sql, [id]);
     return places[0] || null;
@@ -76,11 +86,13 @@ class TouristPlace {
     
     const placeholders = ids.map(() => '?').join(',');
     const sql = `
-      SELECT id, name, city_id, ticket_price, category, 
-             lat, lng, image_url, description, created_at
-      FROM tourist_places 
-      WHERE id IN (${placeholders})
-      ORDER BY category, ticket_price ASC
+      SELECT tp.id, tp.name, tp.city_id, tp.ticket_price, tp.category,
+             tp.lat, tp.lng, tp.image_url, tp.description, tp.created_at,
+             c.name AS city_name
+      FROM tourist_places tp
+      LEFT JOIN cities c ON c.id = tp.city_id
+      WHERE tp.id IN (${placeholders})
+      ORDER BY tp.category, tp.ticket_price ASC
     `;
     return await query(sql, ids);
   }
@@ -117,34 +129,36 @@ class TouristPlace {
   // Search tourist places
   static async search(cityId, searchTerm, category = null, minPrice = null, maxPrice = null) {
     let sql = `
-      SELECT id, name, city_id, ticket_price, category, 
-             lat, lng, image_url, description, created_at
-      FROM tourist_places 
-      WHERE city_id = ?
+      SELECT tp.id, tp.name, tp.city_id, tp.ticket_price, tp.category,
+             tp.lat, tp.lng, tp.image_url, tp.description, tp.created_at,
+             c.name AS city_name
+      FROM tourist_places tp
+      LEFT JOIN cities c ON c.id = tp.city_id
+      WHERE tp.city_id = ?
     `;
     const params = [cityId];
 
     if (searchTerm) {
-      sql += ` AND (name LIKE ? OR description LIKE ?)`;
+      sql += ` AND (tp.name LIKE ? OR tp.description LIKE ?)`;
       params.push(`%${searchTerm}%`, `%${searchTerm}%`);
     }
 
     if (category) {
-      sql += ` AND category = ?`;
+      sql += ` AND tp.category = ?`;
       params.push(category);
     }
 
     if (minPrice) {
-      sql += ` AND ticket_price >= ?`;
+      sql += ` AND tp.ticket_price >= ?`;
       params.push(minPrice);
     }
 
     if (maxPrice) {
-      sql += ` AND ticket_price <= ?`;
+      sql += ` AND tp.ticket_price <= ?`;
       params.push(maxPrice);
     }
 
-    sql += ` ORDER BY category, ticket_price ASC`;
+    sql += ` ORDER BY tp.category, tp.ticket_price ASC`;
 
     return await query(sql, params);
   }
@@ -152,18 +166,20 @@ class TouristPlace {
   // Get popular places (by category priority)
   static async getPopular(cityId, limit = 10) {
     const sql = `
-      SELECT id, name, city_id, ticket_price, category, 
-             lat, lng, image_url, description, created_at
-      FROM tourist_places 
-      WHERE city_id = ?
+      SELECT tp.id, tp.name, tp.city_id, tp.ticket_price, tp.category,
+             tp.lat, tp.lng, tp.image_url, tp.description, tp.created_at,
+             c.name AS city_name
+      FROM tourist_places tp
+      LEFT JOIN cities c ON c.id = tp.city_id
+      WHERE tp.city_id = ?
       ORDER BY 
         CASE 
-          WHEN category = 'Historical' THEN 1
-          WHEN category = 'Nature' THEN 2
-          WHEN category = 'Cultural' THEN 3
+          WHEN tp.category = 'Historical' THEN 1
+          WHEN tp.category = 'Nature' THEN 2
+          WHEN tp.category = 'Cultural' THEN 3
           ELSE 4
         END,
-        ticket_price ASC
+        tp.ticket_price ASC
       LIMIT ?
     `;
     return await query(sql, [cityId, limit]);

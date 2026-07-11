@@ -115,9 +115,21 @@ const CheckoutPage = () => {
   // Update formData when packageData is loaded
   useEffect(() => {
     if (packageData) {
+      const savedCriteria = sessionStorage.getItem('searchCriteria');
+      let criteria = null;
+
+      if (savedCriteria) {
+        try {
+          criteria = JSON.parse(savedCriteria);
+        } catch (error) {
+          console.error('Error parsing search criteria:', error);
+        }
+      }
+
       setFormData(prev => ({
         ...prev,
-        nights: packageData.nights !== undefined ? packageData.nights : prev.nights
+        nights: criteria?.nights ?? (packageData.nights !== undefined ? packageData.nights : prev.nights),
+        people_count: criteria?.people_count ?? criteria?.peopleCount ?? (packageData.people_count ?? prev.people_count)
       }));
     }
   }, [packageData]);

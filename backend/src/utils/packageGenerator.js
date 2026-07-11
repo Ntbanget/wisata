@@ -398,14 +398,14 @@ class PackageGenerator {
   }
 
   static calculatePackageScore(hotel, places, budget) {
-    let score = 0;
-    score += (hotel.rating / 5) * 40;
-    score += Math.min(places.length / 4, 1) * 30;
+    const hotelFactor = (hotel.rating / 5) * 4;
+    const destinationFactor = Math.min(places.length / 4, 1) * 3;
     const categories = new Set(places.map((p) => p.category));
-    score += Math.min(categories.size / 3, 1) * 20;
+    const categoryFactor = Math.min(categories.size / 3, 1) * 2;
     const totalPrice = hotel.price_per_night + places.reduce((sum, p) => sum + p.ticket_price, 0);
-    const efficiency = Math.max(0, 1 - (totalPrice - budget * 0.7) / (budget * 0.3)) * 10;
-    score += Math.max(0, efficiency);
+    const efficiency = Math.max(0, 1 - (totalPrice - budget * 0.7) / (budget * 0.3));
+    const efficiencyFactor = Math.max(0, Math.min(efficiency, 1)) * 1;
+    const score = hotelFactor + destinationFactor + categoryFactor + efficiencyFactor;
     return Math.round(score * 10) / 10;
   }
 

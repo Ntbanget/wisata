@@ -105,6 +105,23 @@ export const getHotelCategoryLabel = (category) => {
   return labels[category] || category;
 };
 
+// Generate a sensible image URL for hotel or destination cards when no explicit image exists.
+export const getAutoImageUrl = (item, type = 'hotel') => {
+  const explicitUrl = item?.image_url || item?.imageUrl || item?.photo_url || item?.photoUrl || item?.image || item?.thumbnail;
+  if (explicitUrl) {
+    return explicitUrl;
+  }
+
+  const seed = [
+    item?.city_name,
+    item?.name,
+    item?.category,
+    type === 'hotel' ? 'hotel' : 'destination'
+  ].filter(Boolean).join(' ').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+
+  return `https://picsum.photos/seed/${encodeURIComponent(seed || 'wisata')}/800/600`;
+};
+
 // Get hotel category color
 export const getHotelCategoryColor = (category) => {
   const colors = {
@@ -296,6 +313,15 @@ const _hhmm = (mins) => {
 export const formatHHMM = _hhmm;
 
 export const formatDurationMinutes = (mins) => {
+  const m = Math.max(0, Math.round(mins));
+  if (m < 60) return `${m} mnt`;
+  const h = Math.floor(m / 60);
+  const rem = m % 60;
+  if (rem === 0) return `${h} jam`;
+  return `${h} jam ${rem} mnt`;
+};
+
+export const formatDurationMinutesCompact = (mins) => {
   const m = Math.max(0, Math.round(mins));
   if (m < 60) return `${m} mnt`;
   const h = Math.floor(m / 60);

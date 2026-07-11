@@ -116,4 +116,17 @@ describe('PackageGenerator.generatePackages', () => {
     const out = await PackageGenerator.generatePackages(99, 5000000, { nights: 2 });
     expect(out).toEqual([]);
   });
+
+  it('calculates package score within 0-10 range', () => {
+    const hotel = { rating: 5, price_per_night: 500000 };
+    const places = [
+      { category: 'Historical', ticket_price: 20000 },
+      { category: 'Beach', ticket_price: 50000 },
+      { category: 'Nature', ticket_price: 30000 },
+      { category: 'Cultural', ticket_price: 25000 }
+    ];
+    const score = PackageGenerator.calculatePackageScore(hotel, places, 1000000);
+    expect(score).toBeGreaterThanOrEqual(0);
+    expect(score).toBeLessThanOrEqual(10);
+  });
 });

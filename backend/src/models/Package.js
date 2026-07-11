@@ -2,11 +2,16 @@ const { query } = require('./database');
 
 function parseJson(value) {
   if (value === null || value === undefined) return null;
-  try {
-    return JSON.parse(value);
-  } catch (error) {
-    return null;
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'object') return value;
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value);
+    } catch (error) {
+      return value;
+    }
   }
+  return value;
 }
 
 class Package {

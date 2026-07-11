@@ -3,9 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { MapPin, Star, Calendar, Users, ArrowRight, Heart, Share2, Clock, Navigation, DollarSign } from 'lucide-react';
 import apiService from '../services/api';
 import { useBooking } from '../context/BookingContext';
-import { formatCurrency, getRatingStars, getHotelCategoryLabel, getHotelCategoryColor, getPlaceCategoryIcon, generateItinerary, calculateDistance, estimateTravelTime, formatDurationMinutes, computeDailySchedule, getOpeningHours } from '../utils/helpers';
+import { formatCurrency, getRatingStars, getHotelCategoryLabel, getHotelCategoryColor, getPlaceCategoryIcon, generateItinerary, calculateDistance, estimateTravelTime, formatDurationMinutes, computeDailySchedule, getOpeningHours, getAutoImageUrl } from '../utils/helpers';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
+import ImageWithFallback from '../components/ImageWithFallback';
 
 const DetailPage = () => {
   const { packageId } = useParams();
@@ -176,6 +177,22 @@ const DetailPage = () => {
                 <Share2 className="w-5 h-5" />
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Hotel Image */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="container py-6">
+          <div className="overflow-hidden rounded-2xl shadow-soft">
+            <ImageWithFallback
+              src={getAutoImageUrl(packageData.hotel, 'hotel')}
+              alt={packageData.hotel.name}
+              type="hotel"
+              category={packageData.hotel.category}
+              className="h-72 w-full object-cover"
+              fallbackClassName="h-72 w-full"
+            />
           </div>
         </div>
       </div>
@@ -405,12 +422,14 @@ const DetailPage = () => {
               </div>
 
               <div>
-                <div className="bg-gray-100 rounded-xl h-64 flex items-center justify-center">
-                  <div className="text-center text-gray-500">
-                    <MapPin className="w-12 h-12 mx-auto mb-2" />
-                    <p>Hotel Image</p>
-                  </div>
-                </div>
+                <ImageWithFallback
+                  src={getAutoImageUrl(packageData.hotel, 'hotel')}
+                  alt={packageData.hotel.name}
+                  type="hotel"
+                  category={packageData.hotel.category}
+                  className="h-64 w-full rounded-xl object-cover shadow-soft"
+                  fallbackClassName="h-64 w-full rounded-xl"
+                />
               </div>
             </div>
           </div>
@@ -423,21 +442,31 @@ const DetailPage = () => {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {packageData.tourist_places.map((place, index) => (
-                <div key={index} className="border border-gray-200 rounded-lg p-6">
-                  <div className="flex items-start space-x-4">
-                    <div className="text-2xl">{getPlaceCategoryIcon(place.category)}</div>
-                    <div className="flex-grow">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                        {place.name}
-                      </h3>
-                      <div className="flex items-center space-x-3 text-sm text-gray-600 mb-3">
-                        <span className="badge-primary">{place.category}</span>
-                        <span>•</span>
-                        <span>{formatCurrency(place.ticket_price)} entry</span>
+                <div key={index} className="overflow-hidden rounded-lg border border-gray-200">
+                  <ImageWithFallback
+                    src={getAutoImageUrl(place, 'destination')}
+                    alt={place.name}
+                    type="destination"
+                    category={place.category}
+                    className="h-40 w-full object-cover"
+                    fallbackClassName="h-40 w-full"
+                  />
+                  <div className="p-6">
+                    <div className="flex items-start space-x-4">
+                      <div className="text-2xl">{getPlaceCategoryIcon(place.category)}</div>
+                      <div className="flex-grow">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                          {place.name}
+                        </h3>
+                        <div className="flex items-center space-x-3 text-sm text-gray-600 mb-3">
+                          <span className="badge-primary">{place.category}</span>
+                          <span>•</span>
+                          <span>{formatCurrency(place.ticket_price)} entry</span>
+                        </div>
+                        <p className="text-gray-600">
+                          {place.description || 'Discover this amazing destination and create unforgettable memories.'}
+                        </p>
                       </div>
-                      <p className="text-gray-600">
-                        {place.description || 'Discover this amazing destination and create unforgettable memories.'}
-                      </p>
                     </div>
                   </div>
                 </div>

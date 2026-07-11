@@ -70,9 +70,8 @@ const CustomPage = () => {
         packages_count: 10,
         max_places: 1
       });
-      
-      // Extract unique hotels
-      const hotels = hotelsResponse.data.packages.map(p => p.hotel);
+      const hotelsPayload = hotelsResponse?.data || hotelsResponse || {};
+      const hotels = (hotelsPayload.packages || []).map(p => p.hotel);
       setAvailableHotels(hotels);
 
       // Load tourist places
@@ -82,9 +81,9 @@ const CustomPage = () => {
         packages_count: 1,
         max_places: 10
       });
-      
-      if (placesResponse.data.packages.length > 0) {
-        setAvailablePlaces(placesResponse.data.packages[0].tourist_places);
+      const placesPayload = placesResponse?.data || placesResponse || {};
+      if ((placesPayload.packages || []).length > 0) {
+        setAvailablePlaces(placesPayload.packages[0].tourist_places);
       }
     } catch (error) {
       console.error('Error loading options:', error);

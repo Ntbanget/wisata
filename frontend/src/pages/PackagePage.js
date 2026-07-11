@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { MapPin, Star, Calendar, Users, ArrowRight, Filter, Search, Heart, Share2 } from 'lucide-react';
 import apiService from '../services/api';
 import { useBooking } from '../context/BookingContext';
-import { formatCurrency, getRatingStars, getHotelCategoryLabel, getHotelCategoryColor, getPlaceCategoryIcon } from '../utils/helpers';
+import { formatCurrency, getRatingStars, getHotelCategoryLabel, getHotelCategoryColor, getPlaceCategoryIcon, getAutoImageUrl } from '../utils/helpers';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
+import ImageWithFallback from '../components/ImageWithFallback';
+import { buildPackageSearchParams, getPackagesFromPackageApiResponse, resolvePackagePageSessionSnapshot } from '../utils/packageResponse';
 
 const PackagePage = () => {
   const navigate = useNavigate();
@@ -15,43 +17,108 @@ const PackagePage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [sortBy, setSortBy] = useState('score');
+  const [sourceFilter, setSourceFilter] = useState('all');
   const [favorites, setFavorites] = useState([]);
+  const SESSION_STORAGE_TTL_MS = 5 * 60 * 1000;
 
   useEffect(() => {
     loadSearchResults();
   }, []);
 
-  const loadSearchResults = async () => {
-    const savedResults = sessionStorage.getItem('searchResults');
-    const savedCriteria = sessionStorage.getItem('searchCriteria');
-    
-    if (savedResults && savedCriteria) {
-      try {
-        const results = JSON.parse(savedResults);
-        const criteria = JSON.parse(savedCriteria);
-        
-        setPackages(results.packages);
-        setSearchCriteria(criteria);
-        setError(null);
-      } catch (error) {
-        setError('Failed to load search results');
-      }
-    } else {
-      try {
-        const response = await apiService.get('/packages');
-        const data = response.data || response;
-        setPackages(Array.isArray(data) ? data : data.packages || []);
-        setSearchCriteria(null);
-      } catch (err) {
-        setError('Gagal memuat paket wisata. Coba lagi.');
-      }
+  const isBackForwardNavigation = () => {
+    if (typeof window === 'undefined' || !window.performance?.getEntriesByType) {
+      return false;
     }
-    
-    setIsLoading(false);
+
+    const navigationEntries = window.performance.getEntriesByType('navigation');
+    return navigationEntries.length > 0 && navigationEntries[0].type === 'back_forward';
   };
 
-  const handleSort = (packages) => {
-    const sorted = [...packages];
+  const getStoredSearchSnapshot = () => {
+    try {
+      const savedResults = sessionStorage.getItem('searchResults');
+      const savedCriteria = sessionStorage.getItem('searchCriteria');
+
+      if (!savedResults || !savedCriteria) {
+        return null;
+      }
+
+      const results = JSON.parse(savedResults);
+      const criteria = JSON.parse(savedCriteria);
+      const savedAt = Number(results?.saved_at || criteria?.saved_at || 0);
+      const isFresh = !savedAt || Date.now() - savedAt <= SESSION_STORAGE_TTL_MS;
+
+      return { results, criteria, isFresh };
+    } catch (error) {
+      return null;
+    }
+  };
+
+  const loadSearchResults = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    const shouldRestoreFromSession = isBackForwardNavigation();
+    const sessionSnapshot = getStoredSearchSnapshot();
+    const snapshotToUse = resolvePackagePageSessionSnapshot(sessionSnapshot, shouldRestoreFromSession);
+
+    if (snapshotToUse) {
+      const savedPackages = snapshotToUse.results?.packages || snapshotToUse.results?.data?.packages || [];
+      setPackages(Array.isArray(savedPackages) ? savedPackages : []);
+      setSearchCriteria(snapshotToUse.criteria || null);
+
+      const criteria = snapshotToUse.criteria || null;
+      if (criteria) {
+        try {
+          const response = await apiService.generatePackages(buildPackageSearchParams(criteria));
+          const payload = response?.data && typeof response.data === 'object' && !Array.isArray(response.data)
+            ? response.data
+            : response || {};
+          const freshPackages = getPackagesFromPackageApiResponse(response);
+
+          setPackages(freshPackages);
+          setSearchCriteria(payload?.search_criteria || criteria || null);
+          setError(null);
+        } catch (err) {
+          setError('Gagal memuat paket wisata. Coba lagi.');
+        }
+      }
+
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const response = await apiService.generatePackages({});
+      const payload = response?.data && typeof response.data === 'object' && !Array.isArray(response.data)
+        ? response.data
+        : response || {};
+      const freshPackages = getPackagesFromPackageApiResponse(response);
+
+      setPackages(freshPackages);
+      setSearchCriteria(payload?.search_criteria || null);
+      setError(null);
+    } catch (err) {
+      setError('Gagal memuat paket wisata. Coba lagi.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleFilter = (packages) => {
+    const filtered = [...packages].filter((pkg) => {
+      if (sourceFilter === 'promo') {
+        return pkg.source === 'admin';
+      }
+
+      if (sourceFilter === 'recommendation') {
+        return pkg.source === 'generated';
+      }
+
+      return true;
+    });
+
+    const sorted = filtered;
     
     switch (sortBy) {
       case 'price-low':
@@ -157,7 +224,7 @@ const PackagePage = () => {
     );
   }
 
-  const sortedPackages = handleSort(packages);
+  const sortedPackages = handleFilter(packages);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -177,6 +244,16 @@ const PackagePage = () => {
             </div>
             
             <div className="flex items-center space-x-4 mt-4 md:mt-0">
+              <select
+                value={sourceFilter}
+                onChange={(e) => setSourceFilter(e.target.value)}
+                className="select-field"
+              >
+                <option value="all">Semua Paket</option>
+                <option value="promo">Promo</option>
+                <option value="recommendation">Rekomendasi</option>
+              </select>
+
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
@@ -239,8 +316,15 @@ const PackagePage = () => {
                 </button>
 
                 {/* Package Image/Placeholder */}
-                <div className="h-48 bg-gradient-to-br from-primary-400 to-secondary-400 rounded-t-xl flex items-center justify-center">
-                  <MapPin className="w-12 h-12 text-white" />
+                <div className="h-48 overflow-hidden rounded-t-xl bg-gray-100">
+                  <ImageWithFallback
+                    src={getAutoImageUrl(packageData.hotel, 'hotel')}
+                    alt={packageData.hotel.name}
+                    type="hotel"
+                    category={packageData.hotel.category}
+                    className="h-full w-full object-cover"
+                    fallbackClassName="h-full w-full"
+                  />
                 </div>
 
                 {/* Package Content */}
@@ -248,12 +332,28 @@ const PackagePage = () => {
                   {/* Hotel Info */}
                   <div className="mb-4">
                     <div className="flex items-start justify-between mb-2">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        {packageData.hotel.name}
-                      </h3>
-                      <span className={`badge ${getHotelCategoryColor(packageData.hotel.category)}`}>
-                        {getHotelCategoryLabel(packageData.hotel.category)}
-                      </span>
+                      <div className="min-w-0">
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          {packageData.source === 'admin' && packageData.name
+                            ? packageData.name
+                            : packageData.hotel.name}
+                        </h3>
+                        {packageData.source === 'admin' && packageData.name && (
+                          <p className="text-sm text-gray-500 mt-1 truncate">
+                            {packageData.hotel.name}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-2 justify-end">
+                        {packageData.source === 'admin' ? (
+                          <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">
+                            Promo
+                          </span>
+                        ) : null}
+                        <span className={`badge ${getHotelCategoryColor(packageData.hotel.category)}`}>
+                          {getHotelCategoryLabel(packageData.hotel.category)}
+                        </span>
+                      </div>
                     </div>
                     
                     <div className="flex items-center space-x-2 text-sm text-gray-600 mb-2">

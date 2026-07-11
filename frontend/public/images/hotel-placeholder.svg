@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="480" viewBox="0 0 800 480">
+    <rect width="800" height="480" fill="#e0f2fe" />
+    <rect x="80" y="120" width="640" height="240" rx="24" fill="#38bdf8" opacity="0.25" />
+    <rect x="140" y="180" width="180" height="120" rx="16" fill="#0f766e" opacity="0.8" />
+    <rect x="360" y="180" width="220" height="90" rx="16" fill="#ffffff" opacity="0.9" />
+    <rect x="360" y="290" width="180" height="24" rx="12" fill="#ffffff" opacity="0.7" />
+    <text x="400" y="90" text-anchor="middle" font-family="Arial, sans-serif" font-size="34"
+        font-weight="700" fill="#0f172a">Hotel Preview</text>
+</svg>

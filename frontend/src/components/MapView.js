@@ -5,6 +5,7 @@ import apiService from '../services/api';
 import { formatCurrency, calculateDistance, computeDailySchedule, formatDurationMinutes, getOpeningHours } from '../utils/helpers';
 import LoadingSpinner from './LoadingSpinner';
 import ErrorMessage from './ErrorMessage';
+import ImageWithFallback from './ImageWithFallback';
 
 // Fix for default markers in react-leaflet
 delete Icon.Default.prototype._getIconUrl;
@@ -405,6 +406,14 @@ const MapView = ({
             >
               <Popup>
                 <div className="p-2 min-w-[180px]">
+                  <ImageWithFallback
+                    src={hotel.image_url || hotel.imageUrl || hotel.photo_url || hotel.photoUrl || ''}
+                    alt={hotel.name}
+                    type="hotel"
+                    category={hotel.category}
+                    className="mb-2 h-24 w-full rounded-md object-cover"
+                    fallbackClassName="mb-2 h-24 w-full rounded-md"
+                  />
                   <h3 className="font-bold text-base">{hotel.name}</h3>
                   <p className="text-xs text-gray-600 mb-1">Hotel</p>
                   <p className="text-sm font-medium">
@@ -451,6 +460,14 @@ const MapView = ({
             >
               <Popup>
                 <div className="p-2 min-w-[180px]">
+                  <ImageWithFallback
+                    src={place.image_url || place.imageUrl || place.photo_url || place.photoUrl || ''}
+                    alt={place.name}
+                    type="destination"
+                    category={place.category}
+                    className="mb-2 h-24 w-full rounded-md object-cover"
+                    fallbackClassName="mb-2 h-24 w-full rounded-md"
+                  />
                   <h3 className="font-bold text-base">{place.name}</h3>
                   <p className="text-xs text-gray-600 mb-1">{place.category}</p>
                   <p className="text-sm font-medium">

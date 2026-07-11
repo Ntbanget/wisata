@@ -4,11 +4,13 @@ class Hotel {
   // Get hotels by city ID
   static async getByCity(cityId) {
     const sql = `
-      SELECT id, name, city_id, price_per_night, rating, category, 
-             lat, lng, image_url, description, created_at
-      FROM hotels 
-      WHERE city_id = ?
-      ORDER BY rating DESC, price_per_night ASC
+      SELECT h.id, h.name, h.city_id, h.price_per_night, h.rating, h.category,
+             h.lat, h.lng, h.image_url, h.description, h.created_at,
+             c.name AS city_name
+      FROM hotels h
+      LEFT JOIN cities c ON c.id = h.city_id
+      WHERE h.city_id = ?
+      ORDER BY h.rating DESC, h.price_per_night ASC
     `;
     return await query(sql, [cityId]);
   }
@@ -16,11 +18,13 @@ class Hotel {
   // Get hotels by city and budget
   static async getByCityAndBudget(cityId, budget) {
     const sql = `
-      SELECT id, name, city_id, price_per_night, rating, category, 
-             lat, lng, image_url, description, created_at
-      FROM hotels 
-      WHERE city_id = ? AND price_per_night <= ?
-      ORDER BY rating DESC, price_per_night ASC
+      SELECT h.id, h.name, h.city_id, h.price_per_night, h.rating, h.category,
+             h.lat, h.lng, h.image_url, h.description, h.created_at,
+             c.name AS city_name
+      FROM hotels h
+      LEFT JOIN cities c ON c.id = h.city_id
+      WHERE h.city_id = ? AND h.price_per_night <= ?
+      ORDER BY h.rating DESC, h.price_per_night ASC
     `;
     return await query(sql, [cityId, budget]);
   }
@@ -28,11 +32,13 @@ class Hotel {
   // Get hotels by category
   static async getByCategory(cityId, category) {
     const sql = `
-      SELECT id, name, city_id, price_per_night, rating, category, 
-             lat, lng, image_url, description, created_at
-      FROM hotels 
-      WHERE city_id = ? AND category = ?
-      ORDER BY rating DESC, price_per_night ASC
+      SELECT h.id, h.name, h.city_id, h.price_per_night, h.rating, h.category,
+             h.lat, h.lng, h.image_url, h.description, h.created_at,
+             c.name AS city_name
+      FROM hotels h
+      LEFT JOIN cities c ON c.id = h.city_id
+      WHERE h.city_id = ? AND h.category = ?
+      ORDER BY h.rating DESC, h.price_per_night ASC
     `;
     return await query(sql, [cityId, category]);
   }
@@ -40,11 +46,13 @@ class Hotel {
   // Get best hotel within budget
   static async getBestInBudget(cityId, budget) {
     const sql = `
-      SELECT id, name, city_id, price_per_night, rating, category, 
-             lat, lng, image_url, description, created_at
-      FROM hotels 
-      WHERE city_id = ? AND price_per_night <= ?
-      ORDER BY rating DESC, price_per_night ASC
+      SELECT h.id, h.name, h.city_id, h.price_per_night, h.rating, h.category,
+             h.lat, h.lng, h.image_url, h.description, h.created_at,
+             c.name AS city_name
+      FROM hotels h
+      LEFT JOIN cities c ON c.id = h.city_id
+      WHERE h.city_id = ? AND h.price_per_night <= ?
+      ORDER BY h.rating DESC, h.price_per_night ASC
       LIMIT 1
     `;
     const hotels = await query(sql, [cityId, budget]);
@@ -54,10 +62,12 @@ class Hotel {
   // Get hotel by ID
   static async getById(id) {
     const sql = `
-      SELECT id, name, city_id, price_per_night, rating, category, 
-             lat, lng, image_url, description, created_at
-      FROM hotels 
-      WHERE id = ?
+      SELECT h.id, h.name, h.city_id, h.price_per_night, h.rating, h.category,
+             h.lat, h.lng, h.image_url, h.description, h.created_at,
+             c.name AS city_name
+      FROM hotels h
+      LEFT JOIN cities c ON c.id = h.city_id
+      WHERE h.id = ?
     `;
     const hotels = await query(sql, [id]);
     return hotels[0] || null;
@@ -83,34 +93,36 @@ class Hotel {
   // Search hotels
   static async search(cityId, searchTerm, category = null, minPrice = null, maxPrice = null) {
     let sql = `
-      SELECT id, name, city_id, price_per_night, rating, category, 
-             lat, lng, image_url, description, created_at
-      FROM hotels 
-      WHERE city_id = ?
+      SELECT h.id, h.name, h.city_id, h.price_per_night, h.rating, h.category,
+             h.lat, h.lng, h.image_url, h.description, h.created_at,
+             c.name AS city_name
+      FROM hotels h
+      LEFT JOIN cities c ON c.id = h.city_id
+      WHERE h.city_id = ?
     `;
     const params = [cityId];
 
     if (searchTerm) {
-      sql += ` AND (name LIKE ? OR description LIKE ?)`;
+      sql += ` AND (h.name LIKE ? OR h.description LIKE ?)`;
       params.push(`%${searchTerm}%`, `%${searchTerm}%`);
     }
 
     if (category) {
-      sql += ` AND category = ?`;
+      sql += ` AND h.category = ?`;
       params.push(category);
     }
 
     if (minPrice) {
-      sql += ` AND price_per_night >= ?`;
+      sql += ` AND h.price_per_night >= ?`;
       params.push(minPrice);
     }
 
     if (maxPrice) {
-      sql += ` AND price_per_night <= ?`;
+      sql += ` AND h.price_per_night <= ?`;
       params.push(maxPrice);
     }
 
-    sql += ` ORDER BY rating DESC, price_per_night ASC`;
+    sql += ` ORDER BY h.rating DESC, h.price_per_night ASC`;
 
     return await query(sql, params);
   }
@@ -128,8 +140,8 @@ class Hotel {
       hotelData.price_per_night,
       hotelData.rating,
       hotelData.category,
-      hotelData.lat,
-      hotelData.lng,
+      (hotelData.lat !== undefined && hotelData.lat !== null) ? hotelData.lat : 0.0,
+      (hotelData.lng !== undefined && hotelData.lng !== null) ? hotelData.lng : 0.0,
       hotelData.image_url,
       hotelData.description
     ]);
@@ -150,8 +162,8 @@ class Hotel {
       hotelData.price_per_night,
       hotelData.rating,
       hotelData.category,
-      hotelData.lat,
-      hotelData.lng,
+      (hotelData.lat !== undefined && hotelData.lat !== null) ? hotelData.lat : 0.0,
+      (hotelData.lng !== undefined && hotelData.lng !== null) ? hotelData.lng : 0.0,
       hotelData.image_url,
       hotelData.description,
       id
