@@ -1,6 +1,7 @@
 const Notification = require('../models/Notification');
 const Booking = require('../models/Booking');
 const User = require('../models/User');
+const { logActivity } = require('../helpers/activityLogger');
 
 class NotificationController {
   static async getNotifications(req, res) {
@@ -74,6 +75,8 @@ class NotificationController {
   static async adminSendNotification(req, res) {
     try {
       const { user_id, booking_id = null, title, message, type = 'admin_message' } = req.body;
+      console.log('=== ADMIN SEND NOTIFICATION ===', { user_id, booking_id, title, message, type });
+
       if (!user_id || !title || !message) {
         return res.status(400).json({
           success: false,
@@ -118,7 +121,23 @@ class NotificationController {
         admin_name: adminName
       };
 
+      console.log('=== NOTIFICATION PAYLOAD ===', notificationPayload);
       const notification = await Notification.create(notificationPayload);
+      console.log('=== NOTIFICATION CREATED ===', notification);
+
+      // Log activity
+      try {
+        await logActivity(
+          req.user.id,
+          req.user.name,
+          'SEND_MESSAGE',
+          'CUSTOMER',
+          userId,
+          `Sent message to user ${userId}: "${title}"`
+        );
+      } catch (logError) {
+        console.error('Activity log error:', logError);
+      }
 
       res.json({
         success: true,

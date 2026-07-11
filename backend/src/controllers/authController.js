@@ -553,6 +553,22 @@ class AuthController {
         });
       }
 
+      // Prevent deleting admin accounts
+      const userToDelete = await User.getById(parseInt(id));
+      if (!userToDelete) {
+        return res.status(404).json({
+          error: 'User not found',
+          message: 'User not found'
+        });
+      }
+
+      if (userToDelete.role === 'admin') {
+        return res.status(403).json({
+          error: 'Cannot delete admin',
+          message: 'Admin accounts cannot be deleted'
+        });
+      }
+
       await User.delete(parseInt(id));
 
       // Log activity

@@ -6,7 +6,7 @@ const getApiBaseUrl = () => {
   }
 
   if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-    return 'http://localhost:5000/api';
+    return 'http://localhost:5004/api';
   }
 
   // Fallback production - should never be used if REACT_APP_API_URL
@@ -122,11 +122,17 @@ const apiService = {
   getAllHotels: (params) => api.get('/hotels', { params }),
   getHotelsByCity: (cityId, params) => api.get(`/hotels/city/${cityId}`, { params }),
   getHotelById: (id) => api.get(`/hotels/${id}`),
+  createHotel: (data) => api.post('/hotels', data),
+  updateHotel: (id, data) => api.put(`/hotels/${id}`, data),
+  deleteHotel: (id) => api.delete(`/hotels/${id}`),
 
   // Tourist Places
   getAllTouristPlaces: (params) => api.get('/tourist-places', { params }),
   getTouristPlacesByCity: (cityId, params) => api.get(`/tourist-places/city/${cityId}`, { params }),
   getTouristPlaceById: (id) => api.get(`/tourist-places/${id}`),
+  createTouristPlace: (data) => api.post('/tourist-places', data),
+  updateTouristPlace: (id, data) => api.put(`/tourist-places/${id}`, data),
+  deleteTouristPlace: (id) => api.delete(`/tourist-places/${id}`),
 
   // Vehicles
   getAllVehicles: (params) => api.get('/vehicles', { params }),
@@ -189,6 +195,7 @@ const apiService = {
   getAdminSmartTrips: (params) => api.get('/admin/smart-trips', { params }),
   updateSmartTripStatus: (id, status) => api.put(`/admin/smart-trips/${id}/status`, { status }),
   getAnalytics: (params) => api.get('/admin/analytics', { params }),
+  deleteUser: (id) => api.delete(`/auth/admin/users/${id}`),
   getAdminPackages: (params) => api.get('/admin/packages', { params }),
   createAdminPackage: (data) => api.post('/admin/packages', data),
   updateAdminPackage: (id, data) => api.put(`/admin/packages/${id}`, data),

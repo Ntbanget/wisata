@@ -10,6 +10,7 @@ const AdminCustomers = () => {
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   useEffect(() => {
     loadCustomers();
@@ -36,6 +37,17 @@ const AdminCustomers = () => {
       customer.email.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesFilter && matchesSearch;
   });
+
+  const handleDelete = async (customer) => {
+    try {
+      await apiService.deleteUser(customer.id);
+      setCustomers(customers.filter(c => c.id !== customer.id));
+      setDeleteConfirm(null);
+    } catch (err) {
+      console.error('Error deleting user:', err);
+      alert('Failed to delete user');
+    }
+  };
 
   if (isLoading) {
     return (
@@ -81,7 +93,7 @@ const AdminCustomers = () => {
               className="input-field"
             >
               <option value="all">All Roles</option>
-              <option value="user">User</option>
+              <option value="customer">Customer</option>
               <option value="admin">Admin</option>
             </select>
           </div>
@@ -89,7 +101,7 @@ const AdminCustomers = () => {
       </div>
 
       {/* Customers Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
@@ -171,6 +183,7 @@ const AdminCustomers = () => {
                         <button
                           className="p-2 hover:bg-red-100 rounded-lg transition-colors"
                           title="Delete"
+                          onClick={() => setDeleteConfirm(customer)}
                         >
                           <Trash2 className="w-4 h-4 text-red-600" />
                         </button>
@@ -183,6 +196,32 @@ const AdminCustomers = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Delete User</h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete <strong>{deleteConfirm.name}</strong>? This action cannot be undone.
+            </p>
+            <div className="flex space-x-4">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDelete(deleteConfirm)}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
