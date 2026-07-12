@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Eye, Edit, Trash2, Plus, X } from 'lucide-react';
+import { Search, Filter, Eye, Edit, Trash2, Plus, X, Eye as EyeIcon, EyeOff as EyeOffIcon } from 'lucide-react';
 import apiService from '../../services/api';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
@@ -38,6 +38,7 @@ const AdminCustomers = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+  const [showCreatePassword, setShowCreatePassword] = useState(false);
 
   useEffect(() => {
     loadCustomers();
@@ -415,15 +416,24 @@ const AdminCustomers = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                  <input
-                    type="password"
-                    value={createFormData.password}
-                    onChange={(e) => setCreateFormData({ ...createFormData, password: e.target.value })}
-                    className="input-field"
-                    placeholder="Enter password (min 6 characters)"
-                    required
-                    minLength={6}
-                  />
+                  <div className="relative">
+                    <input
+                      type={showCreatePassword ? 'text' : 'password'}
+                      value={createFormData.password}
+                      onChange={(e) => setCreateFormData({ ...createFormData, password: e.target.value })}
+                      className="input-field pr-10"
+                      placeholder="Enter password (min 6 characters)"
+                      required
+                      minLength={6}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCreatePassword(!showCreatePassword)}
+                      className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                    >
+                      {showCreatePassword ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                    </button>
+                  </div>
                 </div>
 
                 <div>
