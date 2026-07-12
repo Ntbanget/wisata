@@ -287,6 +287,178 @@ class AdminController {
     }
   }
 
+  // Get customer by ID with details
+  static async getCustomerById(req, res) {
+    try {
+      const { id } = req.params;
+      const customer = await User.getById(id);
+
+      if (!customer) {
+        return res.status(404).json({
+          success: false,
+          error: 'Customer not found'
+        });
+      }
+
+      // Get customer bookings
+      const bookings = await Booking.getByUserId(id);
+
+      // Remove password from response
+      const { password_hash, ...customerWithoutPassword } = customer;
+
+      res.json({
+        success: true,
+        data: {
+          customer: customerWithoutPassword,
+          bookings: bookings || []
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching customer:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch customer',
+        message: error.message
+      });
+    }
+  }
+
+  // Create customer
+  static async createCustomer(req, res) {
+    try {
+      const { name, email, password, phone, role = 'customer' } = req.body;
+
+      // Validate input
+      if (!name || !email || !password) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing required fields',
+          message: 'Name, email, and password are required'
+        });
+      }
+
+      // Check if user already exists
+      const existingUser = await User.getByEmail(email);
+      if (existingUser) {
+        return res.status(409).json({
+          success: false,
+          error: 'User already exists',
+          message: 'An account with this email already exists'
+        });
+      }
+
+      // Hash password
+      const bcrypt = require('bcryptjs');
+      const password_hash = await bcrypt.hash(password, 10);
+
+      // Create user
+      const userId = await User.create({
+        name,
+        email,
+        password_hash,
+        phone,
+        role
+      });
+
+      // Log activity
+      try {
+        await logActivity(
+          req.user.id,
+          req.user.name,
+          'CREATE_CUSTOMER',
+          'USER',
+          userId,
+          `Created new customer: ${name} (${email})`
+        );
+      } catch (logError) {
+        console.error('Activity log error:', logError);
+      }
+
+      const user = await User.getById(userId);
+      const { password_hash: _, ...userWithoutPassword } = user;
+
+      res.status(201).json({
+        success: true,
+        message: 'Customer created successfully',
+        data: userWithoutPassword
+      });
+    } catch (error) {
+      console.error('Error creating customer:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to create customer',
+        message: error.message
+      });
+    }
+  }
+
+  // Update customer
+  static async updateCustomer(req, res) {
+    try {
+      const { id } = req.params;
+      const { name, email, phone, role, is_active } = req.body;
+
+      const existingCustomer = await User.getById(id);
+      if (!existingCustomer) {
+        return res.status(404).json({
+          success: false,
+          error: 'Customer not found'
+        });
+      }
+
+      // If changing email, check if new email already exists
+      if (email && email !== existingCustomer.email) {
+        const emailExists = await User.getByEmail(email);
+        if (emailExists) {
+          return res.status(409).json({
+            success: false,
+            error: 'Email already exists',
+            message: 'An account with this email already exists'
+          });
+        }
+      }
+
+      // Build update data
+      const updateData = {};
+      if (name !== undefined) updateData.name = name;
+      if (email !== undefined) updateData.email = email;
+      if (phone !== undefined) updateData.phone = phone;
+      if (role !== undefined) updateData.role = role;
+      if (is_active !== undefined) updateData.is_active = is_active;
+
+      const updatedCustomer = await User.update(id, updateData);
+
+      // Log activity
+      try {
+        await logActivity(
+          req.user.id,
+          req.user.name,
+          'UPDATE_CUSTOMER',
+          'USER',
+          parseInt(id),
+          `Updated customer: ${existingCustomer.name} (${existingCustomer.email})`
+        );
+      } catch (logError) {
+        console.error('Activity log error:', logError);
+      }
+
+      const { password_hash, ...customerWithoutPassword } = updatedCustomer;
+
+      res.json({
+        success: true,
+        message: 'Customer updated successfully',
+        data: customerWithoutPassword
+      });
+    } catch (error) {
+      console.error('Error updating customer:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to update customer',
+        message: error.message
+      });
+    }
+  }
+
   static async getAdminPackages(req, res) {
     try {
       const { status } = req.query;

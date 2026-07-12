@@ -399,6 +399,14 @@ class AuthController {
   // Admin: Create admin user
   static async createAdmin(req, res) {
     try {
+      // Only super admin can create new admin accounts
+      if (req.user.email !== 'admin@wisata.test') {
+        return res.status(403).json({
+          error: 'Forbidden',
+          message: 'Access denied: Only super admin can create new admin accounts'
+        });
+      }
+
       const { name, email, password, phone } = req.body;
 
       // Validate input

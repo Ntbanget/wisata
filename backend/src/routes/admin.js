@@ -21,6 +21,9 @@ router.put('/payments/:id/verify', authenticateAdmin, adminOnly, AdminController
 
 // Users
 router.get('/customers', authenticateAdmin, adminOnly, AdminController.getAllCustomers);
+router.get('/customers/:id', authenticateAdmin, adminOnly, AdminController.getCustomerById);
+router.post('/customers', authenticateAdmin, adminOnly, AdminController.createCustomer);
+router.put('/customers/:id', authenticateAdmin, adminOnly, AdminController.updateCustomer);
 
 // Vehicles
 router.get('/vehicles', authenticateAdmin, adminOnly, AdminController.getAllVehicles);
