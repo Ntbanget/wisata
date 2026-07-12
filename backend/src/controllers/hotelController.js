@@ -122,7 +122,7 @@ class HotelController {
   // Create new hotel (admin only)
   static async createHotel(req, res) {
     try {
-      const { city_id, name, category, description, price_per_night, image_url, address, rating } = req.body;
+      const { city_id, name, category, description, price_per_night, image_url, address, rating, lat, lng } = req.body;
 
       // Validation
       if (!city_id || !validator.isInt(String(city_id), { min: 1 })) {
@@ -161,7 +161,9 @@ class HotelController {
         price_per_night,
         image_url: image_url || null,
         address: address || null,
-        rating: rating || 0.0
+        rating: rating || 0.0,
+        lat: lat !== undefined && lat !== null && lat !== '' ? parseFloat(lat) : 0.0,
+        lng: lng !== undefined && lng !== null && lng !== '' ? parseFloat(lng) : 0.0
       });
 
       res.status(201).json({
@@ -183,7 +185,7 @@ class HotelController {
   static async updateHotel(req, res) {
     try {
       const { id } = req.params;
-      const { city_id, name, category, description, price_per_night, image_url, address, rating } = req.body;
+      const { city_id, name, category, description, price_per_night, image_url, address, rating, lat, lng } = req.body;
 
       if (!validator.isInt(id, { min: 1 })) {
         return res.status(400).json({
@@ -238,7 +240,9 @@ class HotelController {
         price_per_night: price_per_night || existingHotel.price_per_night,
         image_url: image_url !== undefined ? image_url : existingHotel.image_url,
         address: address !== undefined ? address : existingHotel.address,
-        rating: rating !== undefined ? rating : existingHotel.rating
+        rating: rating !== undefined ? rating : existingHotel.rating,
+        lat: lat !== undefined && lat !== null && lat !== '' ? parseFloat(lat) : existingHotel.lat,
+        lng: lng !== undefined && lng !== null && lng !== '' ? parseFloat(lng) : existingHotel.lng
       });
 
       res.json({

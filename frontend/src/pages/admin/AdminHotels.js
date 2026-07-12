@@ -4,6 +4,7 @@ import apiService from '../../services/api';
 import { formatCurrency, getAutoImageUrl, getHotelCategoryLabel } from '../../utils/helpers';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
+import MapPicker from '../../components/MapPicker';
 
 const emptyForm = {
   name: '',
@@ -13,7 +14,9 @@ const emptyForm = {
   description: '',
   image_url: '',
   address: '',
-  rating: '0'
+  rating: '0',
+  lat: '',
+  lng: ''
 };
 
 const AdminHotels = () => {
@@ -84,7 +87,9 @@ const AdminHotels = () => {
       description: hotel.description || '',
       image_url: hotel.image_url || '',
       address: hotel.address || '',
-      rating: hotel.rating || '0'
+      rating: hotel.rating || '0',
+      lat: hotel.lat || '',
+      lng: hotel.lng || ''
     });
     setIsModalOpen(true);
   };
@@ -341,6 +346,42 @@ const AdminHotels = () => {
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   className="input-field"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Location on Map</label>
+                <MapPicker
+                  initialLat={formData.lat}
+                  initialLng={formData.lng}
+                  onLocationChange={(newLat, newLng) => {
+                    setFormData({ ...formData, lat: newLat, lng: newLng });
+                  }}
+                  height="250px"
+                />
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Latitude</label>
+                    <input
+                      type="number"
+                      step="any"
+                      value={formData.lat}
+                      onChange={(e) => setFormData({ ...formData, lat: e.target.value })}
+                      className="input-field text-sm"
+                      placeholder="-7.0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Longitude</label>
+                    <input
+                      type="number"
+                      step="any"
+                      value={formData.lng}
+                      onChange={(e) => setFormData({ ...formData, lng: e.target.value })}
+                      className="input-field text-sm"
+                      placeholder="110.0"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div>
