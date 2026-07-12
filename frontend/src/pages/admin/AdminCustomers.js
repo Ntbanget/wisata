@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Search, Filter, Eye, Edit, Trash2, Plus, X } from 'lucide-react';
+import { Search, Filter, Eye, Edit, Trash2, Plus, X } from 'lucide-react';
 import apiService from '../../services/api';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';

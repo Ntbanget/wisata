@@ -406,6 +406,26 @@ class AdminController {
         });
       }
 
+      // Prevent self-update via admin panel
+      if (parseInt(id) === req.user.id) {
+        return res.status(403).json({
+          success: false,
+          error: 'Forbidden',
+          message: 'Access denied: You cannot update your own account via admin panel. Use profile settings instead.'
+        });
+      }
+
+      // Only super admin can change role to admin
+      if (role === 'admin' && existingCustomer.role !== 'admin') {
+        if (req.user.email !== 'admin@wisata.test') {
+          return res.status(403).json({
+            success: false,
+            error: 'Forbidden',
+            message: 'Access denied: Only super admin can change user role to admin'
+          });
+        }
+      }
+
       // If changing email, check if new email already exists
       if (email && email !== existingCustomer.email) {
         const emailExists = await User.getByEmail(email);
