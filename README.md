@@ -1,17 +1,25 @@
+Link website
+https://wisata-amber.vercel.app/
+
+Hosting menggunakan
+Frontend : Vercel
+Backend  : Railway
+Database : NeonDB (PostgreSQL)
+
 # 🌴 Central Java Tourism Travel Planner
 
-A complete fullstack web application for planning travel trips to cities in Central Java, Indonesia.
+Aplikasi web fullstack untuk merencanakan perjalanan wisata ke kota-kota di Jawa Tengah, Indonesia.
 
-## 🚀 Features
+## 🚀 Fitur
 
-- **Multi-City Support**: Select from 9 major cities in Central Java
-- **Budget-Based Planning**: Input budget and get customized travel packages
-- **Hotel & Destination Matching**: Automatic selection based on budget and ratings
-- **Interactive Maps**: Leaflet + OpenStreetMap integration with route visualization
-- **Booking System**: Complete checkout and booking management
-- **Real Navigation**: Direct integration with OpenStreetMap navigation
+- **Multi-City Support**: Pilih dari 9 kota besar di Jawa Tengah
+- **Perencanaan Berbasis Budget**: Masukkan budget dan dapatkan paket wisata yang disesuaikan
+- **Pencocokan Hotel & Destinasi**: Pemilihan otomatis berdasarkan budget dan rating
+- **Peta Interaktif**: Integrasi Leaflet + OpenStreetMap dengan visualisasi rute
+- **Sistem Booking**: Checkout dan manajemen booking lengkap
+- **Navigasi Nyata**: Integrasi langsung dengan navigasi OpenStreetMap
 
-## 📁 Project Structure
+## 📁 Struktur Proyek
 
 ```
 wisata/
@@ -32,7 +40,7 @@ wisata/
 │   │   └── utils/
 │   ├── package.json
 │   └── tailwind.config.js
-├── database/              # MySQL Schema & Seed Data
+├── database/              # Schema & Seed Data PostgreSQL
 │   ├── schema.sql
 │   └── seed.sql
 ├── .env.example
@@ -44,43 +52,43 @@ wisata/
 **Backend:**
 - Node.js
 - Express.js
-- MySQL
+- PostgreSQL (di-hosting di Neon)
 - CORS
 
 **Frontend:**
 - React
 - React Router
 - Tailwind CSS
-- Leaflet + react-leaflet (with OpenStreetMap tiles)
+- Leaflet + react-leaflet (dengan tile OpenStreetMap)
 
 **Database:**
-- MySQL
+- PostgreSQL (NeonDB)
 
-## 📋 Setup Instructions
+## 📋 Panduan Instalasi
 
-### 1. Database Setup
+### 1. Setup Database
 
 ```bash
-# Create database
-mysql -u root -p
-CREATE DATABASE wisata_db;
+# Buat database di Neon (via dashboard atau CLI)
+# Salin connection string yang diberikan Neon, contoh:
+# postgresql://user:password@ep-xxxx.neon.tech/wisata_db?sslmode=require
 
-# Import schema and seed data
-mysql -u root -p wisata_db < database/schema.sql
-mysql -u root -p wisata_db < database/seed.sql
+# Import schema dan seed data
+psql "<CONNECTION_STRING_NEON>" -f database/schema.sql
+psql "<CONNECTION_STRING_NEON>" -f database/seed.sql
 ```
 
-### 2. Backend Setup
+### 2. Setup Backend
 
 ```bash
 cd backend
 npm install
 cp ../.env.example .env
-# Edit .env with your database credentials
+# Edit .env dengan connection string database Anda
 npm start
 ```
 
-### 3. Frontend Setup
+### 3. Setup Frontend
 
 ```bash
 cd frontend
@@ -88,18 +96,15 @@ npm install
 npm start
 ```
 
-> The map uses Leaflet + OpenStreetMap tiles, so **no API key is required**.
+> Peta menggunakan Leaflet + tile OpenStreetMap, jadi **tidak perlu API key**.
 
 ### 4. Environment Variables
 
-Create `.env` files in both root and backend folders:
+Buat file `.env` di folder root maupun backend:
 
 ```env
 # Backend .env
-DB_HOST=localhost
-DB_USER=root
-DB_PASSWORD=your_password
-DB_NAME=wisata_db
+DATABASE_URL=postgresql://user:password@ep-xxxx.neon.tech/wisata_db?sslmode=require
 PORT=5000
 
 # Frontend .env
@@ -108,24 +113,24 @@ REACT_APP_API_URL=http://localhost:5000/api
 
 ## 🌐 API Endpoints
 
-- `GET /api/cities` - Get all available cities
-- `GET /api/packages?city_id=1&budget=1500000` - Generate travel packages
-- `POST /api/packages/custom` - Calculate custom package price
-- `POST /api/booking` - Save booking data
-- `GET /api/hotels` / `GET /api/hotels/city/:cityId` - Hotels listing
-- `GET /api/tourist-places` / `GET /api/tourist-places/city/:cityId` - Tourist places listing
+- `GET /api/cities` - Mengambil semua kota yang tersedia
+- `GET /api/packages?city_id=1&budget=1500000` - Membuat paket wisata
+- `POST /api/packages/custom` - Menghitung harga paket custom
+- `POST /api/booking` - Menyimpan data booking
+- `GET /api/hotels` / `GET /api/hotels/city/:cityId` - Daftar hotel
+- `GET /api/tourist-places` / `GET /api/tourist-places/city/:cityId` - Daftar tempat wisata
 - `GET /api/health` - Health check
 
-## 🗺️ Map Integration
+## 🗺️ Integrasi Peta
 
-The application uses **Leaflet + react-leaflet** with **OpenStreetMap** tiles for:
-- Displaying city maps with custom markers
-- Drawing routes (polylines) between hotel and destinations
-- Generating navigation URLs that open OpenStreetMap directions
+Aplikasi ini menggunakan **Leaflet + react-leaflet** dengan tile **OpenStreetMap** untuk:
+- Menampilkan peta kota dengan marker kustom
+- Menggambar rute (polyline) antara hotel dan destinasi
+- Membuat URL navigasi yang membuka petunjuk arah OpenStreetMap
 
-No API key or external billing account is required.
+Tidak perlu API key atau akun billing eksternal.
 
-## 📱 Supported Cities
+## 📱 Kota yang Didukung
 
 1. Semarang
 2. Surakarta (Solo)
@@ -137,33 +142,33 @@ No API key or external billing account is required.
 8. Tegal
 9. Pekalongan
 
-## 💡 Business Logic
+## 💡 Logika Bisnis
 
-- **Hotel Categories**: <300k (low), 300k-700k (medium), >700k (high)
-- **Budget Allocation**: 50% for hotels, 30% for tourist places, 20% buffer
-- **Destination Limit**: 2-4 tourist places per package
-- **Selection Criteria**: Best ratings within budget constraints
+- **Kategori Hotel**: <300rb (rendah), 300rb-700rb (sedang), >700rb (tinggi)
+- **Alokasi Budget**: 50% untuk hotel, 30% untuk tempat wisata, 20% buffer
+- **Batas Destinasi**: 2-4 tempat wisata per paket
+- **Kriteria Pemilihan**: Rating terbaik dalam batas budget
 
 ## 🧪 Testing (TDD)
 
-This project ships with Jest + React Testing Library. Tests live in:
-- `backend/tests/unit/` — pure-function tests with mocked DB
-- `frontend/src/utils/__tests__/` — pure helper tests
-- `frontend/src/pages/__tests__/` — component tests
+Proyek ini menggunakan Jest + React Testing Library. Test tersimpan di:
+- `backend/tests/unit/` — test fungsi murni dengan DB yang di-mock
+- `frontend/src/utils/__tests__/` — test helper murni
+- `frontend/src/pages/__tests__/` — test komponen
 
 ```bash
 # backend
 cd backend
-npm test               # run once
-npm run test:watch     # auto re-run on save
-npm run test:coverage  # coverage report
+npm test               # jalankan sekali
+npm run test:watch     # auto re-run saat menyimpan file
+npm run test:coverage  # laporan coverage
 
 # frontend
 cd frontend
-npm test               # interactive watch mode (CRA default)
-CI=true npm test       # run once
+npm test               # mode watch interaktif (default CRA)
+CI=true npm test       # jalankan sekali
 ```
 
-See **[TDD.md](./TDD.md)** for the Red → Green → Refactor workflow that should
-be followed every time a new feature is added. See **[CHANGELOG.md](./CHANGELOG.md)**
-for a per-commit changelog of what files moved and why.
+Lihat **[TDD.md](./TDD.md)** untuk alur kerja Red → Green → Refactor yang harus
+diikuti setiap kali menambahkan fitur baru. Lihat **[CHANGELOG.md](./CHANGELOG.md)**
+untuk changelog per-commit tentang file apa saja yang berubah dan alasannya.
